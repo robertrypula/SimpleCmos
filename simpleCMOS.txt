@@ -56,10 +56,12 @@ TODO:
     + zrobic typ przelotka, przechodzi przez wszytkie warstwy laczac pola ze soba, nowe polaczenia: up, down
     + zrobic wyswietlanie ile procent czasu to rysowanie i symulacja
     - zrobic lepszy wyglad stanu 
-    
-    - zrobic prefefiniowane bramki NAND NOR NOT TRISTATE, i na koncu narzedzie laczenia linii miedzy punktem A i B
-    - mozna by pokusic sie o symulacje na GPU przy uzyciu tekstur
-    
+    + pokazywanie obszaru zaznaczonego
+    + pokazywanie wielkosci obiekty w schowku
+    - zrobic prefefiniowane bramki NAND NOR NOT TRISTATE
+    + narzedzie laczenia linii miedzy punktem A i B
+    [KILLED] mozna by pokusic sie o symulacje na GPU przy uzyciu tekstur
+    - API
     
     
     r

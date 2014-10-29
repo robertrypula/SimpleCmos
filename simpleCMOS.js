@@ -22,13 +22,18 @@ var showNumbers = false;
 
 var lastMovedParticlesCount = 0;
 
+var wireToolState = null;
+var wireTool1 = { x: 0, y: 0, lv: 0 };
+var wireTool2 = { x: 0, y: 0, lv: 0 };
 
-var selectBoxState = 0;
+var selectBoxState = null;
 var selectBoxReady = false;
 var selectBox1 = { x: 0, y: 0, lv: 0 };
 var selectBox2 = { x: 0, y: 0, lv: 0 };
+var selectBoxSize = { x: 0, y: 0, lv: 0 };
 
 var clipboard = null;
+var powerActive = true;
 
 
 function numberFormat(number, decimals, dec_point, thousands_sep) 
@@ -123,7 +128,20 @@ function setup(_sizeX, _sizeY, _sizePix, _canvasLevelCount)
         x = Math.floor(relX / sizePix);
         y = Math.floor(relY / sizePix);
 
-        $('#canvas-hover-box').css('left', (x*sizePix)+'px').css('top', (y*sizePix)+'px');
+        if (toolMode==11 && clipboard!==null) {
+            $('#canvas-hover-box').css('left', (x*sizePix)+'px').css('top', (y*sizePix)+'px');
+            $('#canvas-hover-box > div.t').width(clipboard.size.x*sizePix);
+            $('#canvas-hover-box > div.b').width(clipboard.size.x*sizePix).css('top', (clipboard.size.y*sizePix-1)+'px');
+            $('#canvas-hover-box > div.r').height(clipboard.size.y*sizePix).css('left', (clipboard.size.x*sizePix-1)+'px');
+            $('#canvas-hover-box > div.l').height(clipboard.size.y*sizePix);
+        } else {
+            $('#canvas-hover-box').css('left', (x*sizePix)+'px').css('top', (y*sizePix)+'px');
+            $('#canvas-hover-box > div.t').width(sizePix);
+            $('#canvas-hover-box > div.b').width(sizePix).css('top', (sizePix-1)+'px');
+            $('#canvas-hover-box > div.r').height(sizePix).css('left', (sizePix-1)+'px');
+            $('#canvas-hover-box > div.l').height(sizePix);
+        }
+        
         squareMouseMove(x, y);
     });
     cBase.bind('click', function(e) {
@@ -332,6 +350,26 @@ function squareReset(sq)
     squareInHtmlDelete(sq);
 }
 
+function selectBoxInHtmlUpdate()
+{
+    var lv;
+    var sBoxJQObj;
+    var w, h, t, l;
+    
+    $('#canvas-levels > div.canvas > div.select-box').remove();
+    
+    if (selectBoxReady)
+        for (lv=selectBox1.lv; lv<=selectBox2.lv; lv++) {
+            w = selectBoxSize.x*sizePix - 1;
+            h = selectBoxSize.y*sizePix - 1;
+
+            l = selectBox1.x*sizePix;
+            t = selectBox1.y*sizePix;
+            sBoxJQObj = $('<div class="select-box" style="width: ' + w + 'px; height: ' + h + 'px; left: ' + l + 'px; top: ' + t + 'px;">&nbsp;</div>');
+            $('#canvas-levels > div.canvas'+lv).append(sBoxJQObj);
+        }
+}
+
 function squareClick(cX, cY, cLv, type, par, res, state, lvConnCeil, lvConnFloor, forceMore)
 {
     if (cX<0) return;
@@ -392,9 +430,11 @@ function squareClick(cX, cY, cLv, type, par, res, state, lvConnCeil, lvConnFloor
     
     if (type==10) {
         // select box
-        if (selectBoxState==0) {            
+        if (selectBoxState===null || selectBoxState>1) {
+            selectBoxState = 0;
             selectBox1 = { x: cX, y: cY, lv: cLv };
-            selectBoxState = 1;
+            selectBoxState++;
+            selectBoxReady = false;
         } else {
             selectBox2 = { x: cX, y: cY, lv: cLv };
             if (selectBox1.x>selectBox2.x) {
@@ -412,10 +452,14 @@ function squareClick(cX, cY, cLv, type, par, res, state, lvConnCeil, lvConnFloor
                 selectBox1.lv = selectBox2.lv;
                 selectBox2.lv = tmp;
             }
+            selectBoxSize.x = selectBox2.x - selectBox1.x + 1;
+            selectBoxSize.y = selectBox2.y - selectBox1.y + 1;
+            selectBoxSize.lv = selectBox2.lv - selectBox1.lv + 1;
+            console.log(selectBoxSize);
+            selectBoxState++;
             selectBoxReady = true;
-            selectBoxState = 0;
         }
-        
+        selectBoxInHtmlUpdate();
         
         return;
     }
@@ -662,14 +706,25 @@ function simulateTwoSquares(sq1, sq2, side)
         }
 
         // check if its power and restore power state
-        if (sq1.type==4)
-            P1 = MAX_PARTICLES;
-        if (sq1.type==5)
-            P1 = 0;
-        if (sq2.type==4)
-            P2 = MAX_PARTICLES;
-        if (sq2.type==5)
-            P2 = 0;
+        if (powerActive) {
+            if (sq1.type==4)
+                P1 = MAX_PARTICLES;
+            if (sq1.type==5)
+                P1 = 0;
+            if (sq2.type==4)
+                P2 = MAX_PARTICLES;
+            if (sq2.type==5)
+                P2 = 0;
+        } else {
+            if (sq1.type==4)
+                P1 = Math.round(MAX_PARTICLES/2.0);
+            if (sq1.type==5)
+                P1 = Math.round(MAX_PARTICLES/2.0);
+            if (sq2.type==4)
+                P2 = Math.round(MAX_PARTICLES/2.0);
+            if (sq2.type==5)
+                P2 = Math.round(MAX_PARTICLES/2.0);
+        }
         
 
         sq1.par = P1;
@@ -861,12 +916,63 @@ function loadScene()
     squaresDbChanged = true;
 }
 
-var predefinedObjects = [ { name       : 'Gate NAND',
-                            predefined : [], // [ x: 0, y: 0, lv, name: 'predefinedType' ]
-                            squares    : [ 
-                                         ]
-                          }
-                        ];
+function powerOn()
+{
+    var i, sq, update;
+    
+    powerActive = true;
+    
+    for (i=0; i<squaresDbActiveCount; i++) {
+        sq = squaresDbActive[i];      
+        
+        update = false;
+        switch (sq.type) {
+            case 4: sq.par = MAX_PARTICLES; update = true; break;
+            case 5: sq.par = 0; update = true; break;
+        }
+        if (update)
+            squareInHtmlUpdate(sq);
+    }
+}
+
+function powerOff()
+{
+    var i, sq, update;
+    
+    powerActive = false;
+    
+    for (i=0; i<squaresDbActiveCount; i++) {
+        sq = squaresDbActive[i];      
+        
+        update = false;
+        switch (sq.type) {
+            case 4: sq.par = Math.round(MAX_PARTICLES/2.0); update = true; break;
+            case 5: sq.par = Math.round(MAX_PARTICLES/2.0); update = true; break;
+        }
+        if (update)
+            squareInHtmlUpdate(sq);
+    }
+}
+
+function pressureToNeutral()
+{
+    var i ,sq;
+    
+    for (i=0; i<squaresDbActiveCount; i++) {
+        sq = squaresDbActive[i];      
+        
+        switch (sq.type) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6: sq.par = Math.round(MAX_PARTICLES/2.0);
+                    break;
+        }
+        squareInHtmlUpdate(sq);
+    }
+}
 
 function selectedBoxClear()
 {
@@ -875,9 +981,9 @@ function selectedBoxClear()
     if (!selectBoxReady)
         return;
     
-    for (lv=selectBox1.lv; lv<=selectBox2.lv; lv++)
-        for (y=selectBox1.y; y<=selectBox2.y; y++)
-            for (x=selectBox1.x; x<=selectBox2.x; x++) {
+    for (lv=selectBox1.lv; lv<selectBoxSize.lv; lv++)
+        for (y=selectBox1.y; y<selectBoxSize.y; y++)
+            for (x=selectBox1.x; x<selectBoxSize.x; x++) {
                 sq = squaresDb[lv][y][x];
                 squareReset(sq);
             }
@@ -891,7 +997,7 @@ function selectedBoxCutCopy(cut)
         return;
     
     clipboard = { name       : 'clipboard',
-                  size       : { x: selectBox2.x-selectBox1.x, y: selectBox2.y-selectBox1.y, lv: selectBox2.lv-selectBox1.lv },
+                  size       : { x: selectBoxSize.x, y: selectBoxSize.y, lv: selectBoxSize.lv },
                   predefined : [],
                   squares    : new Array()
                 };
@@ -911,16 +1017,28 @@ function selectedBoxCutCopy(cut)
             }
 }
 
+function deselectBox()
+{
+    selectBoxState = null;
+    selectBoxReady = false;
+    selectBox1 = { x: 0, y: 0, lv: 0 };
+    selectBox2 = { x: 0, y: 0, lv: 0 };
+    selectBoxSize = { x: 0, y: 0, lv: 0 };
+    selectBoxInHtmlUpdate();
+}
+
 function selectedBoxCut()
 {
     selectedBoxCutCopy(true);
     console.log(clipboard);
+    console.log( JSON.stringify(clipboard) );
 }
 
 function selectedBoxCopy()
 {
     selectedBoxCutCopy(false);
     console.log(clipboard);
+    console.log( JSON.stringify(clipboard) );
 }
 
 function clipboardPaste(cLv, cY, cX)
@@ -930,9 +1048,9 @@ function clipboardPaste(cLv, cY, cX)
     if (!clipboard)
         return;
     
-    for (lv=cLv; lv<=clipboard.size.lv; lv++)
-        for (y=cY; y<=clipboard.size.y; y++)
-            for (x=cX; x<=clipboard.size.x; x++) {
+    for (lv=0; lv<clipboard.size.lv; lv++)
+        for (y=0; y<clipboard.size.y; y++)
+            for (x=0; x<clipboard.size.x; x++) {
                 squareClick(cX + x, cY + y, cLv + lv, null);      // insert empty square
             }
     
@@ -951,9 +1069,118 @@ function clipboardPaste(cLv, cY, cX)
     }
 }
 
-function placePredefinedObject(objType)
+function selectedBoxFillByWire()
 {
+    var x, y, lv;
+    
+    if (!selectBoxReady)
+        return;
+    
+    for (lv=selectBox1.lv; lv<=selectBox2.lv; lv++)
+        for (y=selectBox1.y; y<=selectBox2.y; y++)
+            for (x=selectBox1.x; x<=selectBox2.x; x++) {
+                squareClick(x, y, lv, 1, parseInt($('#tool-par').val()), parseInt($('#tool-res').val()), 0, 0, 0);
+            }
+}
 
+var predefinedObjects = [ { "name"       : "Gate NAND",
+                            "size"       : {"x":7,"y":6,"lv":1},
+                            "predefined" : [],
+                            "squares"    : [   {"x":2,"y":0,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":256,"res":1},
+                                               {"x":5,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":6,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":7,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":0,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":1,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                               {"x":2,"y":1,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
+                                               {"x":4,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                               {"x":5,"y":1,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
+                                               {"x":7,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":0,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":2,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":5,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":7,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":2,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":3,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                               {"x":5,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":7,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                               {"x":0,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":2,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":5,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":0,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":1,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                               {"x":2,"y":5,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
+                                               {"x":4,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                               {"x":5,"y":5,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
+                                               {"x":2,"y":6,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":256,"res":1},
+                                               {"x":5,"y":6,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":0,"res":1},
+                                               {"x":1,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":2,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":3,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":4,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":3,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":4,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":5,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":6,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":7,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":1,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":2,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":3,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                               {"x":4,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1}
+                                           ]
+                          }
+                        ];
+                        
+
+                            
+
+function copyPredefinedObjectSquaresToClipboard(src)
+{
+    var i;
+    
+    for (i=0; i<src.length; i++) {
+        clipboard.squares.push( { x           : src[i].x,
+                                  y           : src[i].y,
+                                  lv          : src[i].lv,
+                                  type        : src[i].type,
+                                  state       : src[i].state,
+                                  lvConnCeil  : src[i].lvConnCeil,
+                                  lvConnFloor : src[i].lvConnFloor,
+                                  par         : src[i].par,
+                                  res         : src[i].res
+                                }
+                              );
+    }
+}
+
+function placePredefinedObjectInClipboard(name)
+{
+    var key, i;
+    
+    clipboard = { name       : 'clipboard',
+                  size       : { x: 0, y: 0, lv: 0 },
+                  predefined : [],
+                  squares    : new Array()
+                };
+    
+    for (key in predefinedObjects) {
+        if (predefinedObjects[key]['name']==name) {
+            copyPredefinedObjectSquaresToClipboard(predefinedObjects[key]['squares']);
+            
+            break;
+        }
+    }
+    
+    for (i=0; i<clipboard.squares.length; i++) {
+        if (clipboard.size.x<(clipboard.squares[i].x+1))
+            clipboard.size.x = clipboard.squares[i].x + 1;
+        if (clipboard.size.y<(clipboard.squares[i].y + 1))
+            clipboard.size.y = clipboard.squares[i].y + 1;
+        if (clipboard.size.lv<(clipboard.squares[i].lv + 1))
+            clipboard.size.lv = clipboard.squares[i].lv + 1;
+    }
+    
+    console.log(clipboard);
 }
 
 function newScene()

@@ -34,6 +34,7 @@
             #canvas-levels div.canvas a span.par { background-color: red; }
             #canvas-levels div.canvas a span.lv-conn-ceil { width: 20%; height: 20%; top: 0px; left: 43%; background-color: green; }
             #canvas-levels div.canvas a span.lv-conn-floor { width: 20%; height: 20%; top: auto; bottom: 0px; left: 43%; background-color: #00FFFF; }
+            #canvas-levels div.canvas div.select-box { position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; background: url('animated-overlay.gif') repeat left top yellow; opacity: 0.4 }
             
             #canvas-levels.show-numbers div.canvas a span.res { opacity: 1.0 !important; color: yellow; height: 50%; font-size: 9px; line-height: 9px; }
             #canvas-levels.show-numbers div.canvas a span.par { opacity: 1.0 !important; color: yellow; height: 50%; top: 50%; font-size: 9px; line-height: 9px; }
@@ -101,9 +102,17 @@
             <div id="sim-info-box"></div>
             <div class="clear">&nbsp;</div>
             
+            <a href="javascript:void(0)" onClick="placePredefinedObjectInClipboard('Gate NAND')" class="tool-button">Gate NAND</a>
+            <div class="clear">&nbsp;</div>
+            
             <a href="javascript:void(0)" onClick="selectedBoxClear()" class="tool-button">Czyść box</a>
             <a href="javascript:void(0)" onClick="selectedBoxCut()" class="tool-button">Wytnij box</a>
             <a href="javascript:void(0)" onClick="selectedBoxCopy()" class="tool-button">Kopiuj box</a>
+            <a href="javascript:void(0)" onClick="deselectBox()" class="tool-button">Odznacz wszystko</a>
+            <a href="javascript:void(0)" onClick="selectedBoxFillByWire()" class="tool-button">Wypełnij box przewodem</a>
+            <a href="javascript:void(0)" onClick="powerOn()" class="tool-button">Power ON</a>
+            <a href="javascript:void(0)" onClick="powerOff()" class="tool-button">Power OFF</a>
+            <a href="javascript:void(0)" onClick="pressureToNeutral()" class="tool-button">Set neutral pressure</a>
             <div class="clear">&nbsp;</div>
             
             
