@@ -32,17 +32,28 @@ Narzedzia:  wstaw nic, wstaw dziure, wstawianie liczby czasteczek zgodnie z licz
 
 
 TODO:
-    - dobrac odpowiednio parametry tranzystorow  0 - 250 - 500
+    + dobrac odpowiednio parametry tranzystorow  0 - 250 - 500
                                            tranzystor normalnie zamkniety:  powinien sie otwierac -> 0.65 np od 0.75-0.1 do 0.75+0.1 = zamkniety [0.55 - 0.85] otwarty
                                              tranzystor normalnie otwarty:  powinien sie zamykac -> 0.35 np od 0.35-0.1 do 0.35+0.1 = zamkniety [0.25 - 0.45] otwary
-    - przeniesc do funkcji powielony kod
-    - zrobic wczytywanie calej sceny do RAMu a nie jak jest teraz w DOM
+    + przeniesc do funkcji powielony kod
+    + zrobic nowy typ: zasilanie i masa - beda zawsze dawac 0 lub MAX_PARTICLES i nie bedzie im sie to odejmowac
+    + przeniesc update scene do runSimButtonClick
+    + nowy button 'global set particles' - z inputa liczba
+    + zrobic nowy typ: switch ktory raz puszcza z gory, a raz z dolu gdy sie zrobi na nim trigger
+    - zrobic wczytywanie calej sceny do RAMu a nie jak jest teraz w DOM:
+          a) update: kopiuje zawartosc DOM canvasa do tablicy w RAM
+          b) clickOnCanvas: pobiera xy myszki i oblicza kwadrat, dopiero wtedy jest tworzony <a>
+          c) tworzenie a do osobnej funkcji (squareInHtmlCreate)
+          c) update a z RAM do osobnej funkcji (squareInHtmlUpdate)
+          d) delete a z RAM do osobnej funkcji (squareInHtmlDelete)
+          d) load uzywa osobnej funckcji (squareInHtmlCreate)
+          e) simulateSquares uzywa teraz RAM a nie DOM
+          f) symulacja w miejscu czyli bez losowania idkow
     - zrobic wiele petli w trakcie jednej klatki + input
-    - zrobic wyswietlanie ile procent czasu to rysowanie i symulacja
-    - zrobic nowy typ: zasilanie i masa - beda zawsze dawac 0 lub MAX_PARTICLES i nie bedzie im sie to odejmowac
-    - zrobic nowy typ: switch ktory raz puszcza z gory, a raz z dolu gdy sie zrobi na nim trigger
-    - przeniesc update scene do runSimButtonClick
-    - nowy button 'global set particles' - z inputa liczba
-    - wiele warstw np 3
+    - wiele warstw np 3 (osobne canvasy)
     - zrobic typ przelotka, przechodzi przez wszytkie warstwy laczac pola ze soba, nowe polaczenia: up, down
+    - zrobic wyswietlanie ile procent czasu to rysowanie i symulacja
     - zrobic lepszy wyglad stanu 
+    
+    - zrobic prefefiniowane bramki NAND NOR NOT TRISTATE, i na koncu narzedzie laczenia linii miedzy punktem A i B
+    - mozna by pokusic sie o symulacje na GPU przy uzyciu tekstur

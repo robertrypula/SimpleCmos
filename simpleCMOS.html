@@ -6,6 +6,7 @@
         
         <script src="js/jquery-1.9.1.js"></script>
         <script src="js/json2.js"></script>
+        <script src="simpleCMOS.js"></script>
         
         <!--[if lte IE 8]>
             <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>             
@@ -22,375 +23,35 @@
             .fleft { float: left; }
             .fright { float: right; }
             
-            #canvas { background-color: #222; position: relative; }
-            #canvas a { display: block; position: absolute; color: red; }
-            #canvas a i { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; overflow: hidden; }
-            #canvas a b { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; overflow: hidden; }
+            #canvas-container { position: relative; top: 0px; left: 0px; }
+            #canvas-levels div.canvas { background-color: #222; position: absolute; top: 0px; left: 0px; }
+            #canvas-levels div.canvas a { display: block; position: absolute; color: red; }
+            #canvas-levels div.canvas a i { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; overflow: hidden; }
+            #canvas-levels div.canvas a b { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; overflow: hidden; }
             
-            #canvas a i { width: 100%; height: 100%; position: absolute; top: 0px; left: 0px; background-color: black; z-index: 2; } /* res */
-            #canvas a b { width: 100%; height: 100%; position: absolute; top: 0px; left: 0px; background-color: red; z-index: 1; } /* par */
+            #canvas-levels div.canvas a i { width: 100%; height: 100%; position: absolute; top: 0px; left: 0px; background-color: black; z-index: 2; text-indent: -9999px; } /* res */
+            #canvas-levels div.canvas a b { width: 100%; height: 100%; position: absolute; top: 0px; left: 0px; background-color: red; z-index: 1; text-indent: -9999px; } /* par */
             
-            #canvas a:hover { outline: 1px solid yellow; }
+            #canvas-levels div.canvas a:hover { outline: 1px solid yellow; }
             
-            #canvas a.type1 { background-color: white; }
-            #canvas a.type2 { background-color: white; outline: 3px solid orange; }
-            #canvas a.type3 { background-color: white; outline: 3px solid blue; }
+            #canvas-levels div.canvas a.type1 { background-color: white; }
+            #canvas-levels div.canvas a.type2 { background-color: white; outline: 3px solid orange; }
+            #canvas-levels div.canvas a.type3 { background-color: white; outline: 3px solid blue; }
+            #canvas-levels div.canvas a.type4 { background-color: white; outline: 3px dashed #af2020; }
+            #canvas-levels div.canvas a.type5 { background-color: white; outline: 3px dashed white; }
+            #canvas-levels div.canvas a.type6 { background-color: white; outline: 1px dashed yellow; }
             
-            #saved { font-family: Arial; font-size: 8px; line-height: 10px; width: 1200px; height: 200px; overflow-y: auto; display: block; padding: 10px; border: 1px solid gray; background-color: #eee; }
+            #canvas-hover-box { position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; z-index: 100; }
+            #canvas-hover-box div { position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; }
+            #canvas-hover-box div.t { position: absolute; top: 0px; left: 0px; width: 0px; height: 1px; background-color: yellow; }
+            #canvas-hover-box div.r { position: absolute; top: 0px; left: 0px; width: 1px; height: 0px; background-color: yellow; }
+            #canvas-hover-box div.b { position: absolute; top: 0px; left: 0px; width: 0px; height: 1px; background-color: yellow; }
+            #canvas-hover-box div.l { position: absolute; top: 0px; left: 0px; width: 1px; height: 0px; background-color: yellow; }
+            
+            #saved { font-family: Arial; font-size: 8px; line-height: 10px; width: 600px; height: 100px; overflow-y: auto; display: block; padding: 10px; border: 1px solid gray; background-color: #eee; }
             
         </style>
         
-        <script>
-            var sizeX = 50;
-            var sizeY = 30;
-            var sizePix = 20;
-            var toolMode = 0;
-            var MAX_RESISTANCE = 2500;
-            var MAX_PARTICLES = 500;
-            var TRAN_SATURATION = 0.6;
-            var TRAN_SATURATION_DELTA = 0.08;
-            var activeSquares = new Array();
-            var activeSquaresIndexes = new Array();
-            var activeSquaresCount = 0;
-            var squareSides = new Array();
-            
-            function shuffle(inputArr) 
-            {
-                var valArr = [],
-                k = '',
-                i = 0,
-                strictForIn = false,
-                populateArr = [];
-                
-                for (k in inputArr) { // Get key and value arrays
-                    if (inputArr.hasOwnProperty(k)) {
-                        valArr.push(inputArr[k]);
-                        if (strictForIn) {
-                            delete inputArr[k];
-                        }
-                    }
-                }
-                valArr.sort(function () {
-                    return 0.5 - Math.random();
-                });
-                
-                // BEGIN REDUNDANT
-                this.php_js = this.php_js || {};
-                this.php_js.ini = this.php_js.ini || {};
-                // END REDUNDANT
-                strictForIn = this.php_js.ini['phpjs.strictForIn'] && this.php_js.ini['phpjs.strictForIn'].local_value && this.php_js.ini['phpjs.strictForIn'].local_value !== 'off';
-                populateArr = strictForIn ? inputArr : populateArr;
-                
-                for (i = 0; i < valArr.length; i++) { // Repopulate the old array
-                    populateArr[i] = valArr[i];
-                }
-                
-                return strictForIn || populateArr;
-            }
-
-            function setup()
-            {
-                var x, y;
-                var left, top, width, height;
-                var c = $('#canvas');
-                
-                width = sizePix - 1;
-                height = sizePix - 1;
-                
-                for (y=0; y<sizeY; y++)
-                    for (x=0; x<sizeX; x++) {
-                        
-                        left = x * sizePix;
-                        top = y * sizePix;
-                        
-                        c.append('<a id="sq-'+x+'-'+y+'" x="'+x+'" y="'+y+'"  href="javascript:void(0)" onClick="squareClick($(this))" style="top: '+top+'px; left: '+left+'px; width: '+width+'px; height: '+height+'px;">&nbsp;</a>');
-                        
-                    }
-                c.width(sizePix*sizeX);
-                c.height(sizePix*sizeY);
-                
-                squareSides.push(0);
-                squareSides.push(1);
-                squareSides.push(2);
-                squareSides.push(3);
-            }
-        
-            function toolButtonClick(obj)
-            {
-                $('#toolbar > a').removeClass('active');
-                obj.addClass('active');
-                toolMode = obj.attr('type');
-            }
-            
-            function squareClick(obj)
-            {
-                var toolRes = $('#tool-res').val();
-                var toolPar = $('#tool-par').val();
-                
-                obj.html('');
-                obj.removeClass('type1').removeClass('type2').removeClass('type3').removeClass('active');
-                            
-                switch (parseInt(toolMode)) {
-                    case 0: 
-                            break;
-                    case 1: obj.addClass('type1').addClass('active');
-                            obj.append('<b>'+toolPar+'</b>').
-                                append('<i>'+toolRes+'</i>');
-                            obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                            obj.find('> i').css('opacity', toolRes/MAX_RESISTANCE); 
-                            break;
-                    case 2: obj.addClass('type2').addClass('active');
-                            obj.append('<b>'+toolPar+'</b>').
-                                append('<i>'+MAX_RESISTANCE+'</i>');
-                            obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                            obj.find('> i').css('opacity', MAX_RESISTANCE/MAX_RESISTANCE); 
-                            break;
-                    case 3: obj.addClass('type3').addClass('active');
-                            obj.append('<b>'+toolPar+'</b>').
-                                append('<i>'+1+'</i>');
-                            obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                            obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
-                            break;
-                }
-            }
-            
-            function updateScene()
-            {
-                var sq, _x, _y;
-                
-                activeSquares = new Array();
-                activeSquaresIndexes = new Array();
-                activeSquaresCount = 0;
-                $('#canvas > a.active').each(function() {
-                    _x = parseInt($(this).attr('x'));
-                    _y = parseInt($(this).attr('y'));
-                    
-                    sq = { obj    : $(this),
-                           x      : _x,
-                           y      : _y,
-                           left   : (($('#canvas > #sq-'+(_x-1)+'-'+_y+'.active').size()==1) ? $('#canvas > #sq-'+(_x-1)+'-'+_y+'.active') : null),
-                           right  : (($('#canvas > #sq-'+(_x+1)+'-'+_y+'.active').size()==1) ? $('#canvas > #sq-'+(_x+1)+'-'+_y+'.active') : null),
-                           top    : (($('#canvas > #sq-'+_x+'-'+(_y-1)+'.active').size()==1) ? $('#canvas > #sq-'+_x+'-'+(_y-1)+'.active') : null),
-                           bottom : (($('#canvas > #sq-'+_x+'-'+(_y+1)+'.active').size()==1) ? $('#canvas > #sq-'+_x+'-'+(_y+1)+'.active') : null)
-                         };
-                         
-                    activeSquares.push(sq);
-                    activeSquaresIndexes.push(activeSquaresCount);
-                    activeSquaresCount++;
-                });
-            }
-            
-            function simulateTwoSquares(sq1, sq2, side)
-            {
-                var R1, R2, P1, P2;
-                var pDiff;
-                var R12;
-                var particlesToMove;
-                var computeCurrent = true;
-                var isSq1Tran = false, isSq2Tran = false;
-                var transistorMode = false;
-                var transType, tranSquare, gateSquare;
-                var gateParticles;
-                var gateFactor, tranFactor;
-                var tranResistance;
-                
-                // check is one from pair is transistor
-                isSq1Tran = (sq1.hasClass('type2') ? 2 : ( sq1.hasClass('type3') ? 3 : false ));
-                isSq2Tran = (sq2.hasClass('type2') ? 2 : ( sq2.hasClass('type3') ? 3 : false ));
-                
-                if ((isSq1Tran!==false && isSq2Tran===false) || (isSq1Tran===false && isSq2Tran!==false))
-                    if (isSq1Tran!=false) {
-                        // sq1 is transistor
-                        if (side==3) {
-                            transistorMode = true;
-                            transType = isSq1Tran;
-                            tranSquare = sq1;
-                            gateSquare = sq2;
-                            computeCurrent = false;
-                        } else
-                            if (side==1)
-                                computeCurrent = false;
-                        
-                    } else {
-                        // sq2 is transistor
-                        if (side==1) {
-                            transistorMode = true;
-                            transType = isSq2Tran;
-                            tranSquare = sq2;
-                            gateSquare = sq1;
-                            computeCurrent = false;
-                        } else
-                            if (side==3)
-                                computeCurrent = false;
-                    }
-                    
-                // change transistor resistance
-                if (transistorMode) {
-                    gateParticles = parseInt(gateSquare.find('> b').html());
-                    gateFactor = gateParticles / MAX_PARTICLES;
-                    gateFactor = gateFactor > 1.0 ? 1.0 : gateFactor;
-                    gateFactor = gateFactor < 0.0 ? 0.0 : gateFactor;
-                    switch (transType) {
-                        case 2: if (gateFactor<=(TRAN_SATURATION-TRAN_SATURATION_DELTA)) {
-                                    tranFactor = 1.0;
-                                } else
-                                    if (gateFactor>=(TRAN_SATURATION+TRAN_SATURATION_DELTA)) {
-                                        tranFactor = 0.0;
-                                    } else {
-                                        tranFactor = 0.5;  // TODO add cosine easing
-                                    }
-                                break;
-                        case 3: if (gateFactor<=(TRAN_SATURATION-TRAN_SATURATION_DELTA)) {
-                                    tranFactor = 0.0;
-                                } else
-                                    if (gateFactor>=(TRAN_SATURATION+TRAN_SATURATION_DELTA)) {
-                                        tranFactor = 1.0;
-                                    } else {
-                                        tranFactor = 0.5;  // TODO add cosine easing
-                                    }
-                                break;
-                    }
-
-                    tranResistance = 1 + (tranFactor * (MAX_RESISTANCE-1));
-                    tranResistance = Math.round(tranResistance);
-                    
-                    tranSquare.find('> i').html(tranResistance).css('opacity', (tranResistance/MAX_RESISTANCE));
-                }
-                
-                // compute current between squares
-                if (computeCurrent) {
-                    P1 = parseInt(sq1.find('> b').html());
-                    P2 = parseInt(sq2.find('> b').html());
-                    R1 = parseInt(sq1.find('> i').html());
-                    R2 = parseInt(sq2.find('> i').html());
-
-                    R12 = R1 + R2;
-                    pDiff = P2 - P1;
-                    particlesToMove = Math.round( pDiff / R12 );
-                    if (particlesToMove==0 && Math.abs(pDiff)>0) {
-                        if (Math.random()>0.9)
-                            particlesToMove = (Math.random()>0.5) ? 1 : -1;
-                    }
-
-                    P1 = P1 + particlesToMove;
-                    P2 = P2 - particlesToMove;
-                    
-                    if (P1<0) {
-                        P2 = P2 - P1;
-                        P1 = 0;
-                    }
-                    if (P2<0) {
-                        P1 = P1 - P2;
-                        P2 = 0;
-                    }
-
-                    sq1.find('> b').html(P1).css('opacity', P1/MAX_PARTICLES); 
-                    sq2.find('> b').html(P2).css('opacity', P2/MAX_PARTICLES);
-                   
-                }
-            }
-            
-            function simulationLoop()
-            {
-                var i, j, sqRandIdx, sideRandIdx;
-                var sq;
-                
-                if ($('#sim-active').is(':checked') && activeSquaresCount>0) {
-                    
-                    activeSquaresIndexes = shuffle(activeSquaresIndexes);
-                    for (i=0; i<activeSquaresCount; i++) {
-                        sqRandIdx = activeSquaresIndexes[i];
-                        squareSides = shuffle(squareSides);
-                        for (j=0; j<4; j++) {
-                            sideRandIdx = squareSides[j];
-                            
-                            
-                            // A->B is the same as B->A
-                            if (sideRandIdx>=2)
-                                continue;
-                            
-                            sq = activeSquares[sqRandIdx];
-                            
-                            switch (sideRandIdx) {
-                                case 0: if (sq.top!==null) {
-                                            simulateTwoSquares(sq.obj, sq.top, sideRandIdx);
-                                        }
-                                        break;
-                                case 1: if (sq.right!==null) { 
-                                            simulateTwoSquares(sq.obj, sq.right, sideRandIdx);
-                                        }
-                                        break;
-                                case 2: if (sq.bottom!==null) {
-                                            simulateTwoSquares(sq.obj, sq.bottom, sideRandIdx);
-                                        }
-                                        break;
-                                case 3: if (sq.left!==null) {
-                                            simulateTwoSquares(sq.obj, sq.left, sideRandIdx);
-                                        }
-                                        break;
-                            }
-                        }
-                    }
-                    
-                }
-                setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
-            }
-            
-            function saveScene()
-            {
-                var sq;
-                var _x, _y;
-                var saveArray = new Array();
-                
-                $('#canvas > a.active').each(function() {
-                    _x = parseInt($(this).attr('x'));
-                    _y = parseInt($(this).attr('y'));
-                    
-                    sq = { x      : _x,
-                           y      : _y,
-                           type   : ($(this).hasClass('type1') ? 1 : ( $(this).hasClass('type2') ? 2 : ( $(this).hasClass('type3') ? 3 : false ) )),
-                           par    : parseInt($(this).find('> b').html()),
-                           res    : parseInt($(this).find('> i').html())
-                         };
-                         
-                    saveArray.push(sq);
-                });
-                
-                $('#saved').val(JSON.stringify(saveArray));
-            }
-            
-            function loadScene()
-            {
-                var saveArray = JSON.parse($('#saved').val());
-                var i;
-                var aObj;
-                var sa;
-                
-                $('#canvas > a').each(function() { 
-                    $(this).html('');
-                    $(this).removeClass('type1').removeClass('type2').removeClass('type3').removeClass('active');
-                });
-                
-                for (i=0; i<saveArray.length; i++) {
-                    sa = saveArray[i];
-                    
-                    aObj = $('#sq-'+sa.x+'-'+sa.y);
-                    aObj.addClass('type'+sa.type).addClass('active');
-                    
-                    aObj.append('<b>'+sa.par+'</b>').
-                         append('<i>'+sa.res+'</i>');
-                    
-                    aObj.find('> b').css('opacity', sa.par/MAX_PARTICLES); 
-                    aObj.find('> i').css('opacity', sa.res/MAX_RESISTANCE); 
-                }
-            }
-            
-            $(document).ready(function() {
-                
-                setup();
-                setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
-            });
-        </script>
     </head>
     
     
@@ -401,23 +62,56 @@
             <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="1" class="tool-button">Przewód</a>
             <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="2" class="tool-button">Tranzystor normalnie zamknięty</a>
             <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="3" class="tool-button">Tranzystor normalnie otwarty</a>
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="4" class="tool-button">VCC</a>
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="5" class="tool-button">GND</a>
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="6" class="tool-button">Switch</a>
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="7" class="tool-button">Interact</a>
             <div class="clear">&nbsp;</div>
             
-            Resystancja: <input id="tool-res" type="text" value="1" />
-            Liczba cząsteczek: <input id="tool-par" type="text" value="250" />
+            Rezystancja: <input id="tool-res" type="text" value="1" />
+            Liczba cząsteczek: <input id="tool-par" type="text" value="" /> 
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.0*MAX_PARTICLES))">[0.0]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.1*MAX_PARTICLES))">[0.1]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.2*MAX_PARTICLES))">[0.2]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.3*MAX_PARTICLES))">[0.3]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.4*MAX_PARTICLES))">[0.4]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.5*MAX_PARTICLES))">[0.5]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.6*MAX_PARTICLES))">[0.6]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.7*MAX_PARTICLES))">[0.7]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.8*MAX_PARTICLES))">[0.8]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(0.9*MAX_PARTICLES))">[0.9]</a>
+            <a href="javascript:void(0)" onClick="$('#tool-par').val(Math.round(1.0*MAX_PARTICLES))">[1.0]</a>
             Symulacja aktywna:  <input id="sim-active" type="checkbox" />
             Fps:  <input id="sim-fps" type="text" value="40" />
             
-            <a href="javascript:void(0)" onClick="updateScene()" class="tool-button">Update sceny</a>
             <a href="javascript:void(0)" onClick="saveScene()" class="tool-button">Save sceny</a>
             <a href="javascript:void(0)" onClick="loadScene()" class="tool-button">Load sceny</a>
             <div class="clear">&nbsp;</div>
         </div>
         
-        <div id="canvas"></div>
+        <div id="canvas-container">
+            <div id="canvas-levels">
+                <div class="canvas canvas2" level="2"></div>
+                <div class="canvas canvas1" level="1"></div>
+                <div class="canvas canvas0" level="0"></div>                
+            </div>
+            <div id="canvas-hover-box">
+                <div class="t">&nbsp;</div>
+                <div class="r">&nbsp;</div>
+                <div class="b">&nbsp;</div>
+                <div class="l">&nbsp;</div>
+            </div>
+        </div>
         
         <br/>
-        <textarea id="saved">[{"x":20,"y":3,"type":1,"par":500,"res":1},{"x":21,"y":3,"type":1,"par":500,"res":1},{"x":22,"y":3,"type":1,"par":500,"res":1},{"x":23,"y":3,"type":1,"par":500,"res":1},{"x":24,"y":3,"type":1,"par":500,"res":1},{"x":25,"y":3,"type":1,"par":500,"res":1},{"x":26,"y":3,"type":1,"par":500,"res":1},{"x":27,"y":3,"type":1,"par":500,"res":1},{"x":28,"y":3,"type":1,"par":500,"res":1},{"x":29,"y":3,"type":1,"par":500,"res":1},{"x":30,"y":3,"type":1,"par":500,"res":1},{"x":31,"y":3,"type":1,"par":500,"res":1},{"x":32,"y":3,"type":1,"par":500,"res":1},{"x":20,"y":4,"type":1,"par":500,"res":1},{"x":21,"y":4,"type":1,"par":500,"res":1},{"x":22,"y":4,"type":1,"par":500,"res":1},{"x":23,"y":4,"type":1,"par":500,"res":1},{"x":24,"y":4,"type":1,"par":500,"res":1},{"x":25,"y":4,"type":1,"par":500,"res":1},{"x":26,"y":4,"type":1,"par":500,"res":1},{"x":27,"y":4,"type":1,"par":500,"res":1},{"x":28,"y":4,"type":1,"par":500,"res":1},{"x":29,"y":4,"type":1,"par":500,"res":1},{"x":30,"y":4,"type":1,"par":500,"res":1},{"x":31,"y":4,"type":1,"par":500,"res":1},{"x":32,"y":4,"type":1,"par":500,"res":1},{"x":20,"y":5,"type":1,"par":500,"res":1},{"x":21,"y":5,"type":1,"par":500,"res":1},{"x":22,"y":5,"type":1,"par":500,"res":1},{"x":23,"y":5,"type":1,"par":500,"res":1},{"x":24,"y":5,"type":1,"par":500,"res":1},{"x":25,"y":5,"type":1,"par":500,"res":1},{"x":26,"y":5,"type":1,"par":500,"res":1},{"x":27,"y":5,"type":1,"par":500,"res":1},{"x":28,"y":5,"type":1,"par":500,"res":1},{"x":29,"y":5,"type":1,"par":500,"res":1},{"x":30,"y":5,"type":1,"par":500,"res":1},{"x":31,"y":5,"type":1,"par":500,"res":1},{"x":32,"y":5,"type":1,"par":500,"res":1},{"x":20,"y":6,"type":1,"par":500,"res":1},{"x":21,"y":6,"type":1,"par":500,"res":1},{"x":22,"y":6,"type":1,"par":500,"res":1},{"x":23,"y":6,"type":1,"par":500,"res":1},{"x":24,"y":6,"type":1,"par":500,"res":1},{"x":25,"y":6,"type":1,"par":500,"res":1},{"x":26,"y":6,"type":1,"par":500,"res":1},{"x":27,"y":6,"type":1,"par":500,"res":1},{"x":28,"y":6,"type":1,"par":500,"res":1},{"x":29,"y":6,"type":1,"par":500,"res":1},{"x":30,"y":6,"type":1,"par":500,"res":1},{"x":31,"y":6,"type":1,"par":500,"res":1},{"x":32,"y":6,"type":1,"par":500,"res":1},{"x":20,"y":7,"type":1,"par":500,"res":1},{"x":21,"y":7,"type":1,"par":500,"res":1},{"x":22,"y":7,"type":1,"par":500,"res":1},{"x":23,"y":7,"type":1,"par":500,"res":1},{"x":24,"y":7,"type":1,"par":500,"res":1},{"x":25,"y":7,"type":1,"par":500,"res":1},{"x":26,"y":7,"type":1,"par":500,"res":1},{"x":27,"y":7,"type":1,"par":500,"res":1},{"x":28,"y":7,"type":1,"par":500,"res":1},{"x":29,"y":7,"type":1,"par":500,"res":1},{"x":30,"y":7,"type":1,"par":500,"res":1},{"x":31,"y":7,"type":1,"par":500,"res":1},{"x":32,"y":7,"type":1,"par":500,"res":1},{"x":18,"y":8,"type":1,"par":250,"res":1},{"x":19,"y":8,"type":1,"par":250,"res":1},{"x":20,"y":8,"type":1,"par":500,"res":1},{"x":21,"y":8,"type":1,"par":500,"res":1},{"x":22,"y":8,"type":1,"par":500,"res":1},{"x":23,"y":8,"type":1,"par":500,"res":1},{"x":24,"y":8,"type":1,"par":500,"res":1},{"x":25,"y":8,"type":1,"par":500,"res":1},{"x":26,"y":8,"type":1,"par":500,"res":1},{"x":27,"y":8,"type":1,"par":500,"res":1},{"x":28,"y":8,"type":1,"par":500,"res":1},{"x":29,"y":8,"type":1,"par":500,"res":1},{"x":30,"y":8,"type":1,"par":500,"res":1},{"x":31,"y":8,"type":1,"par":500,"res":1},{"x":32,"y":8,"type":1,"par":500,"res":1},{"x":18,"y":9,"type":1,"par":250,"res":1},{"x":22,"y":9,"type":1,"par":250,"res":1},{"x":26,"y":9,"type":1,"par":250,"res":1},{"x":30,"y":9,"type":1,"par":250,"res":1},{"x":18,"y":10,"type":1,"par":250,"res":1},{"x":20,"y":10,"type":1,"par":250,"res":1},{"x":21,"y":10,"type":1,"par":250,"res":1},{"x":22,"y":10,"type":3,"par":250,"res":1},{"x":24,"y":10,"type":1,"par":250,"res":1},{"x":25,"y":10,"type":1,"par":250,"res":1},{"x":26,"y":10,"type":3,"par":250,"res":1},{"x":28,"y":10,"type":1,"par":250,"res":1},{"x":29,"y":10,"type":1,"par":250,"res":1},{"x":30,"y":10,"type":3,"par":250,"res":1},{"x":18,"y":11,"type":1,"par":250,"res":1},{"x":20,"y":11,"type":1,"par":250,"res":1},{"x":22,"y":11,"type":1,"par":250,"res":1},{"x":24,"y":11,"type":1,"par":250,"res":1},{"x":26,"y":11,"type":1,"par":250,"res":1},{"x":28,"y":11,"type":1,"par":250,"res":1},{"x":30,"y":11,"type":1,"par":250,"res":1},{"x":18,"y":12,"type":1,"par":250,"res":1},{"x":19,"y":12,"type":1,"par":250,"res":1},{"x":20,"y":12,"type":1,"par":250,"res":1},{"x":22,"y":12,"type":1,"par":250,"res":1},{"x":23,"y":12,"type":1,"par":250,"res":1},{"x":24,"y":12,"type":1,"par":250,"res":1},{"x":26,"y":12,"type":1,"par":250,"res":1},{"x":27,"y":12,"type":1,"par":250,"res":1},{"x":28,"y":12,"type":1,"par":250,"res":1},{"x":30,"y":12,"type":1,"par":250,"res":1},{"x":31,"y":12,"type":1,"par":250,"res":1},{"x":32,"y":12,"type":1,"par":250,"res":1},{"x":33,"y":12,"type":1,"par":250,"res":1},{"x":20,"y":13,"type":1,"par":250,"res":1},{"x":22,"y":13,"type":1,"par":250,"res":1},{"x":24,"y":13,"type":1,"par":250,"res":1},{"x":26,"y":13,"type":1,"par":250,"res":1},{"x":28,"y":13,"type":1,"par":250,"res":1},{"x":30,"y":13,"type":1,"par":250,"res":1},{"x":20,"y":14,"type":1,"par":250,"res":1},{"x":21,"y":14,"type":1,"par":250,"res":1},{"x":22,"y":14,"type":2,"par":250,"res":2500},{"x":24,"y":14,"type":1,"par":250,"res":1},{"x":25,"y":14,"type":1,"par":250,"res":1},{"x":26,"y":14,"type":2,"par":250,"res":2500},{"x":28,"y":14,"type":1,"par":250,"res":1},{"x":29,"y":14,"type":1,"par":250,"res":1},{"x":30,"y":14,"type":2,"par":250,"res":2500},{"x":22,"y":15,"type":1,"par":250,"res":1},{"x":26,"y":15,"type":1,"par":250,"res":1},{"x":30,"y":15,"type":1,"par":250,"res":1},{"x":20,"y":16,"type":1,"par":0,"res":1},{"x":21,"y":16,"type":1,"par":0,"res":1},{"x":22,"y":16,"type":1,"par":0,"res":1},{"x":23,"y":16,"type":1,"par":0,"res":1},{"x":24,"y":16,"type":1,"par":0,"res":1},{"x":25,"y":16,"type":1,"par":0,"res":1},{"x":26,"y":16,"type":1,"par":0,"res":1},{"x":27,"y":16,"type":1,"par":0,"res":1},{"x":28,"y":16,"type":1,"par":0,"res":1},{"x":29,"y":16,"type":1,"par":0,"res":1},{"x":30,"y":16,"type":1,"par":0,"res":1},{"x":31,"y":16,"type":1,"par":0,"res":1},{"x":32,"y":16,"type":1,"par":0,"res":1},{"x":20,"y":17,"type":1,"par":0,"res":1},{"x":21,"y":17,"type":1,"par":0,"res":1},{"x":22,"y":17,"type":1,"par":0,"res":1},{"x":23,"y":17,"type":1,"par":0,"res":1},{"x":24,"y":17,"type":1,"par":0,"res":1},{"x":25,"y":17,"type":1,"par":0,"res":1},{"x":26,"y":17,"type":1,"par":0,"res":1},{"x":27,"y":17,"type":1,"par":0,"res":1},{"x":28,"y":17,"type":1,"par":0,"res":1},{"x":29,"y":17,"type":1,"par":0,"res":1},{"x":30,"y":17,"type":1,"par":0,"res":1},{"x":31,"y":17,"type":1,"par":0,"res":1},{"x":32,"y":17,"type":1,"par":0,"res":1},{"x":20,"y":18,"type":1,"par":0,"res":1},{"x":21,"y":18,"type":1,"par":0,"res":1},{"x":22,"y":18,"type":1,"par":0,"res":1},{"x":23,"y":18,"type":1,"par":0,"res":1},{"x":24,"y":18,"type":1,"par":0,"res":1},{"x":25,"y":18,"type":1,"par":0,"res":1},{"x":26,"y":18,"type":1,"par":0,"res":1},{"x":27,"y":18,"type":1,"par":0,"res":1},{"x":28,"y":18,"type":1,"par":0,"res":1},{"x":29,"y":18,"type":1,"par":0,"res":1},{"x":30,"y":18,"type":1,"par":0,"res":1},{"x":31,"y":18,"type":1,"par":0,"res":1},{"x":32,"y":18,"type":1,"par":0,"res":1},{"x":20,"y":19,"type":1,"par":0,"res":1},{"x":21,"y":19,"type":1,"par":0,"res":1},{"x":22,"y":19,"type":1,"par":0,"res":1},{"x":23,"y":19,"type":1,"par":0,"res":1},{"x":24,"y":19,"type":1,"par":0,"res":1},{"x":25,"y":19,"type":1,"par":0,"res":1},{"x":26,"y":19,"type":1,"par":0,"res":1},{"x":27,"y":19,"type":1,"par":0,"res":1},{"x":28,"y":19,"type":1,"par":0,"res":1},{"x":29,"y":19,"type":1,"par":0,"res":1},{"x":30,"y":19,"type":1,"par":0,"res":1},{"x":31,"y":19,"type":1,"par":0,"res":1},{"x":32,"y":19,"type":1,"par":0,"res":1},{"x":20,"y":20,"type":1,"par":0,"res":1},{"x":21,"y":20,"type":1,"par":0,"res":1},{"x":22,"y":20,"type":1,"par":0,"res":1},{"x":23,"y":20,"type":1,"par":0,"res":1},{"x":24,"y":20,"type":1,"par":0,"res":1},{"x":25,"y":20,"type":1,"par":0,"res":1},{"x":26,"y":20,"type":1,"par":0,"res":1},{"x":27,"y":20,"type":1,"par":0,"res":1},{"x":28,"y":20,"type":1,"par":0,"res":1},{"x":29,"y":20,"type":1,"par":0,"res":1},{"x":30,"y":20,"type":1,"par":0,"res":1},{"x":31,"y":20,"type":1,"par":0,"res":1},{"x":32,"y":20,"type":1,"par":0,"res":1},{"x":20,"y":21,"type":1,"par":0,"res":1},{"x":21,"y":21,"type":1,"par":0,"res":1},{"x":22,"y":21,"type":1,"par":0,"res":1},{"x":23,"y":21,"type":1,"par":0,"res":1},{"x":24,"y":21,"type":1,"par":0,"res":1},{"x":25,"y":21,"type":1,"par":0,"res":1},{"x":26,"y":21,"type":1,"par":0,"res":1},{"x":27,"y":21,"type":1,"par":0,"res":1},{"x":28,"y":21,"type":1,"par":0,"res":1},{"x":29,"y":21,"type":1,"par":0,"res":1},{"x":30,"y":21,"type":1,"par":0,"res":1},{"x":31,"y":21,"type":1,"par":0,"res":1},{"x":32,"y":21,"type":1,"par":0,"res":1}]</textarea>
+        Type: <b id="info-type"></b><br/>
+        R: <b id="info-res"></b><br/>
+        P: <b id="info-par"></b><br/>
+        <br/>
+<!--        <textarea id="saved">[{"x":0,"y":0,"type":1,"par":500,"res":1},{"x":1,"y":0,"type":1,"par":500,"res":1},{"x":2,"y":0,"type":1,"par":500,"res":1},{"x":3,"y":0,"type":1,"par":500,"res":1},{"x":4,"y":0,"type":1,"par":500,"res":1},{"x":5,"y":0,"type":1,"par":500,"res":1},{"x":6,"y":0,"type":1,"par":500,"res":1},{"x":7,"y":0,"type":1,"par":500,"res":1},{"x":8,"y":0,"type":1,"par":500,"res":1},{"x":9,"y":0,"type":1,"par":500,"res":1},{"x":10,"y":0,"type":1,"par":500,"res":1},{"x":11,"y":0,"type":1,"par":500,"res":1},{"x":12,"y":0,"type":1,"par":500,"res":1},{"x":13,"y":0,"type":1,"par":500,"res":1},{"x":14,"y":0,"type":1,"par":500,"res":1},{"x":15,"y":0,"type":1,"par":500,"res":1},{"x":16,"y":0,"type":1,"par":500,"res":1},{"x":17,"y":0,"type":1,"par":500,"res":1},{"x":18,"y":0,"type":1,"par":500,"res":1},{"x":19,"y":0,"type":1,"par":500,"res":1},{"x":0,"y":1,"type":1,"par":500,"res":1},{"x":1,"y":1,"type":1,"par":500,"res":1},{"x":2,"y":1,"type":1,"par":500,"res":1},{"x":3,"y":1,"type":1,"par":500,"res":1},{"x":4,"y":1,"type":1,"par":500,"res":1},{"x":5,"y":1,"type":1,"par":500,"res":1},{"x":6,"y":1,"type":1,"par":500,"res":1},{"x":7,"y":1,"type":1,"par":500,"res":1},{"x":8,"y":1,"type":1,"par":500,"res":1},{"x":9,"y":1,"type":1,"par":500,"res":1},{"x":10,"y":1,"type":1,"par":500,"res":1},{"x":11,"y":1,"type":1,"par":500,"res":1},{"x":12,"y":1,"type":1,"par":500,"res":1},{"x":13,"y":1,"type":1,"par":500,"res":1},{"x":14,"y":1,"type":1,"par":500,"res":1},{"x":15,"y":1,"type":1,"par":500,"res":1},{"x":16,"y":1,"type":1,"par":500,"res":1},{"x":17,"y":1,"type":1,"par":500,"res":1},{"x":18,"y":1,"type":1,"par":500,"res":1},{"x":19,"y":1,"type":1,"par":500,"res":1},{"x":0,"y":2,"type":1,"par":250,"res":1},{"x":5,"y":2,"type":1,"par":250,"res":1},{"x":9,"y":2,"type":1,"par":250,"res":1},{"x":13,"y":2,"type":1,"par":250,"res":1},{"x":0,"y":3,"type":1,"par":250,"res":1},{"x":5,"y":3,"type":1,"par":250,"res":1},{"x":9,"y":3,"type":1,"par":250,"res":1},{"x":13,"y":3,"type":1,"par":250,"res":1},{"x":0,"y":4,"type":1,"par":250,"res":1},{"x":3,"y":4,"type":1,"par":250,"res":1},{"x":4,"y":4,"type":1,"par":250,"res":1},{"x":5,"y":4,"type":3,"par":250,"res":1},{"x":7,"y":4,"type":1,"par":250,"res":1},{"x":8,"y":4,"type":1,"par":250,"res":1},{"x":9,"y":4,"type":3,"par":250,"res":1},{"x":11,"y":4,"type":1,"par":250,"res":1},{"x":12,"y":4,"type":1,"par":250,"res":1},{"x":13,"y":4,"type":3,"par":250,"res":1},{"x":0,"y":5,"type":1,"par":250,"res":1},{"x":3,"y":5,"type":1,"par":250,"res":1},{"x":5,"y":5,"type":1,"par":250,"res":1},{"x":7,"y":5,"type":1,"par":250,"res":1},{"x":9,"y":5,"type":1,"par":250,"res":1},{"x":11,"y":5,"type":1,"par":250,"res":1},{"x":13,"y":5,"type":1,"par":250,"res":1},{"x":0,"y":6,"type":1,"par":250,"res":1},{"x":1,"y":6,"type":1,"par":250,"res":1},{"x":2,"y":6,"type":1,"par":250,"res":1},{"x":3,"y":6,"type":1,"par":250,"res":1},{"x":5,"y":6,"type":1,"par":250,"res":1},{"x":6,"y":6,"type":1,"par":250,"res":1},{"x":7,"y":6,"type":1,"par":250,"res":1},{"x":9,"y":6,"type":1,"par":250,"res":1},{"x":10,"y":6,"type":1,"par":250,"res":1},{"x":11,"y":6,"type":1,"par":250,"res":1},{"x":13,"y":6,"type":1,"par":250,"res":1},{"x":14,"y":6,"type":1,"par":250,"res":1},{"x":15,"y":6,"type":1,"par":250,"res":1},{"x":16,"y":6,"type":1,"par":250,"res":1},{"x":3,"y":7,"type":1,"par":250,"res":1},{"x":5,"y":7,"type":1,"par":250,"res":1},{"x":7,"y":7,"type":1,"par":250,"res":1},{"x":9,"y":7,"type":1,"par":250,"res":1},{"x":11,"y":7,"type":1,"par":250,"res":1},{"x":13,"y":7,"type":1,"par":250,"res":1},{"x":3,"y":8,"type":1,"par":250,"res":1},{"x":4,"y":8,"type":1,"par":250,"res":1},{"x":5,"y":8,"type":2,"par":250,"res":2500},{"x":7,"y":8,"type":1,"par":250,"res":1},{"x":8,"y":8,"type":1,"par":250,"res":1},{"x":9,"y":8,"type":2,"par":250,"res":2500},{"x":11,"y":8,"type":1,"par":250,"res":1},{"x":12,"y":8,"type":1,"par":250,"res":1},{"x":13,"y":8,"type":2,"par":250,"res":2500},{"x":5,"y":9,"type":1,"par":250,"res":1},{"x":9,"y":9,"type":1,"par":250,"res":1},{"x":13,"y":9,"type":1,"par":250,"res":1},{"x":5,"y":10,"type":1,"par":250,"res":1},{"x":9,"y":10,"type":1,"par":250,"res":1},{"x":13,"y":10,"type":1,"par":250,"res":1},{"x":0,"y":11,"type":1,"par":0,"res":1},{"x":1,"y":11,"type":1,"par":0,"res":1},{"x":2,"y":11,"type":1,"par":0,"res":1},{"x":3,"y":11,"type":1,"par":0,"res":1},{"x":4,"y":11,"type":1,"par":0,"res":1},{"x":5,"y":11,"type":1,"par":0,"res":1},{"x":6,"y":11,"type":1,"par":0,"res":1},{"x":7,"y":11,"type":1,"par":0,"res":1},{"x":8,"y":11,"type":1,"par":0,"res":1},{"x":9,"y":11,"type":1,"par":0,"res":1},{"x":10,"y":11,"type":1,"par":0,"res":1},{"x":11,"y":11,"type":1,"par":0,"res":1},{"x":12,"y":11,"type":1,"par":0,"res":1},{"x":13,"y":11,"type":1,"par":0,"res":1},{"x":14,"y":11,"type":1,"par":0,"res":1},{"x":15,"y":11,"type":1,"par":0,"res":1},{"x":16,"y":11,"type":1,"par":0,"res":1},{"x":17,"y":11,"type":1,"par":0,"res":1},{"x":18,"y":11,"type":1,"par":0,"res":1},{"x":19,"y":11,"type":1,"par":0,"res":1},{"x":0,"y":12,"type":1,"par":0,"res":1},{"x":1,"y":12,"type":1,"par":0,"res":1},{"x":2,"y":12,"type":1,"par":0,"res":1},{"x":3,"y":12,"type":1,"par":0,"res":1},{"x":4,"y":12,"type":1,"par":0,"res":1},{"x":5,"y":12,"type":1,"par":0,"res":1},{"x":6,"y":12,"type":1,"par":0,"res":1},{"x":7,"y":12,"type":1,"par":0,"res":1},{"x":8,"y":12,"type":1,"par":0,"res":1},{"x":9,"y":12,"type":1,"par":0,"res":1},{"x":10,"y":12,"type":1,"par":0,"res":1},{"x":11,"y":12,"type":1,"par":0,"res":1},{"x":12,"y":12,"type":1,"par":0,"res":1},{"x":13,"y":12,"type":1,"par":0,"res":1},{"x":14,"y":12,"type":1,"par":0,"res":1},{"x":15,"y":12,"type":1,"par":0,"res":1},{"x":16,"y":12,"type":1,"par":0,"res":1},{"x":17,"y":12,"type":1,"par":0,"res":1},{"x":18,"y":12,"type":1,"par":0,"res":1},{"x":19,"y":12,"type":1,"par":0,"res":1}]</textarea>-->
         
+<!--        <textarea id="saved">[{"x":5,"y":1,"type":4,"par":500,"res":1},{"x":9,"y":1,"type":4,"par":500,"res":1},{"x":13,"y":1,"type":4,"par":500,"res":1},{"x":5,"y":2,"type":1,"par":250,"res":1},{"x":9,"y":2,"type":1,"par":250,"res":1},{"x":13,"y":2,"type":1,"par":250,"res":1},{"x":5,"y":3,"type":1,"par":250,"res":1},{"x":9,"y":3,"type":1,"par":250,"res":1},{"x":13,"y":3,"type":1,"par":250,"res":1},{"x":3,"y":4,"type":1,"par":250,"res":1},{"x":4,"y":4,"type":1,"par":250,"res":1},{"x":5,"y":4,"type":3,"par":250,"res":1},{"x":7,"y":4,"type":1,"par":250,"res":1},{"x":8,"y":4,"type":1,"par":250,"res":1},{"x":9,"y":4,"type":3,"par":250,"res":1},{"x":11,"y":4,"type":1,"par":250,"res":1},{"x":12,"y":4,"type":1,"par":250,"res":1},{"x":13,"y":4,"type":3,"par":250,"res":1},{"x":3,"y":5,"type":1,"par":250,"res":1},{"x":5,"y":5,"type":1,"par":250,"res":1},{"x":7,"y":5,"type":1,"par":250,"res":1},{"x":9,"y":5,"type":1,"par":250,"res":1},{"x":11,"y":5,"type":1,"par":250,"res":1},{"x":13,"y":5,"type":1,"par":250,"res":1},{"x":2,"y":6,"type":4,"par":500,"res":1},{"x":3,"y":6,"type":1,"par":250,"res":1},{"x":5,"y":6,"type":1,"par":250,"res":1},{"x":6,"y":6,"type":1,"par":250,"res":1},{"x":7,"y":6,"type":1,"par":250,"res":1},{"x":9,"y":6,"type":1,"par":250,"res":1},{"x":10,"y":6,"type":1,"par":250,"res":1},{"x":11,"y":6,"type":1,"par":250,"res":1},{"x":13,"y":6,"type":1,"par":250,"res":1},{"x":14,"y":6,"type":1,"par":250,"res":1},{"x":15,"y":6,"type":1,"par":250,"res":1},{"x":16,"y":6,"type":1,"par":250,"res":1},{"x":3,"y":7,"type":1,"par":250,"res":1},{"x":5,"y":7,"type":1,"par":250,"res":1},{"x":7,"y":7,"type":1,"par":250,"res":1},{"x":9,"y":7,"type":1,"par":250,"res":1},{"x":11,"y":7,"type":1,"par":250,"res":1},{"x":13,"y":7,"type":1,"par":250,"res":1},{"x":3,"y":8,"type":1,"par":250,"res":1},{"x":4,"y":8,"type":1,"par":250,"res":1},{"x":5,"y":8,"type":2,"par":250,"res":2500},{"x":7,"y":8,"type":1,"par":250,"res":1},{"x":8,"y":8,"type":1,"par":250,"res":1},{"x":9,"y":8,"type":2,"par":250,"res":2500},{"x":11,"y":8,"type":1,"par":250,"res":1},{"x":12,"y":8,"type":1,"par":250,"res":1},{"x":13,"y":8,"type":2,"par":250,"res":2500},{"x":5,"y":9,"type":1,"par":250,"res":1},{"x":9,"y":9,"type":1,"par":250,"res":1},{"x":13,"y":9,"type":1,"par":250,"res":1},{"x":5,"y":10,"type":1,"par":250,"res":1},{"x":9,"y":10,"type":1,"par":250,"res":1},{"x":13,"y":10,"type":1,"par":250,"res":1},{"x":5,"y":11,"type":5,"par":0,"res":1},{"x":9,"y":11,"type":5,"par":0,"res":1},{"x":13,"y":11,"type":5,"par":0,"res":1}]</textarea>-->
+
+        <textarea id="saved">[{"x":4,"y":0,"type":4,"par":5000,"res":1},{"x":2,"y":1,"type":1,"par":35,"res":1},{"x":3,"y":1,"type":1,"par":36,"res":1},{"x":4,"y":1,"type":3,"par":4933,"res":1},{"x":17,"y":1,"type":4,"par":5000,"res":1},{"x":2,"y":2,"type":1,"par":35,"res":1},{"x":4,"y":2,"type":1,"par":4924,"res":1},{"x":5,"y":2,"type":1,"par":4928,"res":1},{"x":6,"y":2,"type":1,"par":4928,"res":1},{"x":7,"y":2,"type":1,"par":4931,"res":1},{"x":8,"y":2,"type":1,"par":4929,"res":1},{"x":10,"y":2,"type":4,"par":5000,"res":1},{"x":17,"y":2,"type":1,"par":4949,"res":1},{"x":2,"y":3,"type":1,"par":32,"res":1},{"x":3,"y":3,"type":1,"par":33,"res":1},{"x":4,"y":3,"type":2,"par":2474,"res":100},{"x":8,"y":3,"type":1,"par":4929,"res":1},{"x":9,"y":3,"type":1,"par":4929,"res":1},{"x":10,"y":3,"type":3,"par":3133,"res":100},{"x":15,"y":3,"type":1,"par":1152,"res":1},{"x":16,"y":3,"type":1,"par":1157,"res":1},{"x":17,"y":3,"type":3,"par":4921,"res":1},{"x":2,"y":4,"type":1,"par":31,"res":1},{"x":4,"y":4,"type":5,"par":0,"res":1},{"x":10,"y":4,"type":1,"par":1160,"res":1},{"x":12,"y":4,"type":1,"par":1101,"res":1},{"x":13,"y":4,"type":1,"par":1102,"res":1},{"x":14,"y":4,"type":1,"par":1116,"res":1},{"x":15,"y":4,"type":1,"par":1147,"res":1},{"x":17,"y":4,"type":1,"par":4921,"res":1},{"x":18,"y":4,"type":1,"par":4892,"res":1},{"x":19,"y":4,"type":1,"par":4901,"res":1},{"x":2,"y":5,"type":1,"par":30,"res":1},{"x":8,"y":5,"type":1,"par":0,"res":1},{"x":9,"y":5,"type":1,"par":0,"res":1},{"x":10,"y":5,"type":3,"par":1129,"res":1},{"x":12,"y":5,"type":1,"par":1051,"res":1},{"x":15,"y":5,"type":1,"par":1148,"res":1},{"x":16,"y":5,"type":1,"par":1158,"res":1},{"x":17,"y":5,"type":2,"par":2448,"res":100},{"x":0,"y":6,"type":5,"par":0,"res":1},{"x":1,"y":6,"type":1,"par":5,"res":1},{"x":2,"y":6,"type":1,"par":34,"res":1},{"x":5,"y":6,"type":5,"par":0,"res":1},{"x":6,"y":6,"type":1,"par":0,"res":1},{"x":7,"y":6,"type":1,"par":0,"res":1},{"x":8,"y":6,"type":1,"par":0,"res":1},{"x":10,"y":6,"type":1,"par":1073,"res":1},{"x":11,"y":6,"type":1,"par":1072,"res":1},{"x":12,"y":6,"type":1,"par":1030,"res":1},{"x":13,"y":6,"type":1,"par":933,"res":1},{"x":17,"y":6,"type":1,"par":30,"res":1},{"x":2,"y":7,"type":1,"par":35,"res":1},{"x":8,"y":7,"type":1,"par":0,"res":1},{"x":9,"y":7,"type":1,"par":0,"res":1},{"x":10,"y":7,"type":2,"par":1037,"res":100},{"x":13,"y":7,"type":1,"par":545,"res":8},{"x":17,"y":7,"type":5,"par":0,"res":1},{"x":2,"y":8,"type":1,"par":43,"res":1},{"x":3,"y":8,"type":1,"par":57,"res":1},{"x":4,"y":8,"type":1,"par":63,"res":1},{"x":10,"y":8,"type":1,"par":789,"res":1},{"x":13,"y":8,"type":1,"par":58,"res":1},{"x":4,"y":9,"type":1,"par":66,"res":1},{"x":8,"y":9,"type":1,"par":93,"res":1},{"x":9,"y":9,"type":1,"par":94,"res":1},{"x":10,"y":9,"type":2,"par":442,"res":100},{"x":13,"y":9,"type":5,"par":0,"res":1},{"x":4,"y":10,"type":1,"par":76,"res":1},{"x":5,"y":10,"type":1,"par":75,"res":1},{"x":6,"y":10,"type":1,"par":86,"res":1},{"x":7,"y":10,"type":1,"par":89,"res":1},{"x":8,"y":10,"type":1,"par":89,"res":1},{"x":10,"y":10,"type":5,"par":0,"res":1}]</textarea>
     </body>
 </html>
