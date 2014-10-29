@@ -1,0 +1,22 @@
+Co moge znale¿æ na lsim.pl
+Strona lsim.pl powsta³a z myœl¹ o wszystkich tych, którzy chcieliby siê wg³êbiæ w tajniki uk³adów cyfrowych. Jeœli interesuje Ciê odpowiedŸ na pytanie jak dzia³a procesor i z czego jest zbudowany trafi³eœ w dobre miejsce. Dostêpny jest tutaj prosty symulator dziêki, któremu mo¿esz sprawdziæ dzia³anie ka¿dego uk³adu logicznego. Artyku³y zosta³y napisane tak by ka¿dy z tematów opisywa³ kolejn¹ 'cegie³kê' potrzebn¹ do budowy coraz to bardziej z³o¿onych uk³adów. Jeœli myœlisz, ¿e budowa w³asnego procesora jest czymœ niemo¿liwym jesteœ w b³êdzie! Na tej stronie znajdziesz wszystkie informacje potrzebne do budowy w³asnego procesora! Symulator umo¿liwi Ci uruchomienie i przetestowanie jego dzia³ania.
+
+Co daje za³o¿enie konta
+Za³o¿enie konta umo¿liwi Ci zapisywanie swoich uk³adów i wymianê z innymi u¿ytkownikami. Mo¿e byæ to pomocne do przygotowywania zadañ na laborki z uk³adów cyfrowych. Nie jest wymagane ¿adne dodatkowe oprogramowanie. Wszystko dostêpne jest online z poziomu przegl¹darki. Oddawanie zadañ na laborki nigdy nie by³o tak proste!
+
+Symulator uk³adów cyfrowych
+Od samego pocz¹tku projektu stara³em siê by symulator by³ inny ni¿ reszta tego typu narzêdzi, które mo¿na znaleŸæ w Internecie. Postanowi³em wiêc zast¹piæ pr¹d elektryczny czymœ co mo¿emy sobie ³atwo wyobraziæ z ¿ycia codziennego. Stan logiczny reprezentowany jest zatem nie napiêciem lecz ciœnieniem powietrza znajduj¹cego siê w uk³adzie. To za³o¿enie u³atwia zrozumienie tego co tak naprawdê dzieje siê w uk³adzie scalonym.
+
+Sygna³ i informacja
+Sygna³ zgodnie z tym co mo¿na wyczytaæ w wikipedii jest to "abstrakcyjny model dowolnej mierzalnej wielkoœci zmieniaj¹cej siê w czasie, generowanej przez zjawiska fizyczne lub systemy". Przyk³adowo sygna³em mo¿e byæ strumieñ œwiat³a z zapalonej latarki, czy znaki dymne puszczane przez naszych przodków. W przypadku znaków dymnych mo¿na ich by³o stosowaæ do ostrzegania o zbli¿aj¹cych siê niebezpieczeñstwach. Sygna³y mo¿na wiêc wykorzystaæ do przesy³ania informacji. We wspó³czesnych procesorach sygna³em jest poziom napiêcia elektrycznego wystêpuj¹cego w danej œcie¿ce uk³adu. W informatyce powszechnie stosuje siê system binarny do kodowania i przetwarzania informacji. W tym systemie wyrózniamy dwa stany: logiczne zero oraz logiczne jeden. Mo¿emy wiêc zatem przypisaæ tym stanom logicznym odpowiedni poziom napiêcia. Niskie napiêcie bêdzie oznacza³o stan logiczny zero natomiast wysokie napiêcie stan logiczny jeden. Napiêcie elektryczne pochodzi ze Ÿród³a zasilania takiego uk³adu. Mo¿e nim byæ zwyk³a bateria. WeŸmy dla przyk³adu zwyk³¹ baterie 5V. Posiada ona dwa styki - oraz +. Mo¿emy przyj¹æ, ¿e - oznacza poziom napiêcia 0V natomiast + poziom 5V.
+
+[Obrazek baterii i kabelka. Raz kabel jest pod³¹czony do 0 raz do 1, a na koñcu do niczego (float)]
+
+
+W ten prosty sposób doszliœmy do modelu sygna³ów stosowanych w niemal ka¿dym wspó³czesnym procesorze.
+
+TODO: przejsc do analogii z powietrzem
+TODO: pokazac pare kabli w symulatorze
+
+Tranzystor
+Rol¹ transystora jest transformacja sygna³u wejœciowego. Sygna³ wejœciowy mo¿e zatem zmieniaæ inny sygna³. 

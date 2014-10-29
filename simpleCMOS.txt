@@ -29,6 +29,11 @@ particlesToMove = round( parDiff/(R + Rneighbour) )
 
 Narzedzia:  wstaw nic, wstaw dziure, wstawianie liczby czasteczek zgodnie z liczba z inputa, wstawienie rezystancji zgodnie z liczba z inputa
 
+====================================================================
+Muza na prezentacje okolo 2min 30sek poczatku:
+    Miloopa - Nutrition Facts (2005)\07-dramenbejsky-bfhmp3.mp3
+====================================================================
+
 
 
 TODO:
@@ -51,19 +56,25 @@ TODO:
           f) [KILLED - NIE DO WYKONANIA] symulacja w miejscu czyli bez losowania idkow
     + zrobic losowanie kwadratu i strony w formie tabilicy {sq: ?, side: ?} ktora jest pomieszana. Generowanie tej tabilicy w update
     + zrobic wiele petli w trakcie jednej klatki + input
-    + zrobic licznik przeniesionych cz¹stek w pêtli symulacji (to bêdzie wyznacznikiem kiedy zmieniæ zegar)
+    + zrobic licznik przeniesionych czï¿½stek w pï¿½tli symulacji (to bï¿½dzie wyznacznikiem kiedy zmieniï¿½ zegar)
     + wiele warstw np 3 (osobne canvasy)
     + zrobic typ przelotka, przechodzi przez wszytkie warstwy laczac pola ze soba, nowe polaczenia: up, down
     + zrobic wyswietlanie ile procent czasu to rysowanie i symulacja
-    - zrobic lepszy wyglad stanu 
     + pokazywanie obszaru zaznaczonego
     + pokazywanie wielkosci obiekty w schowku
-    - zrobic prefefiniowane bramki NAND NOR NOT TRISTATE
-    - zrobic pamietanie schowka 
+    + zrobic prefefiniowane bramki NAND NOR NOT TRISTATE
     + narzedzie laczenia linii miedzy punktem A i B
     [KILLED] mozna by pokusic sie o symulacje na GPU przy uzyciu tekstur
-    - API
     
+    - API
+    - zrobic lepszy wyglad stanu 
+    - zrobic pamietanie schowka 
+    
+    
+    Wyglad strony z paskiem na dole i na gorze. To byÅ‚oby dobre ;)
+        http://grooveshark.com/
+    WygÅ‚Ä…d podobny 
+        strona uploadify
     
     r
 //        if (particlesToMove==0 && Math.abs(pDiff)>0) {
