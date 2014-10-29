@@ -51,8 +51,9 @@ TODO:
           f) [KILLED - NIE DO WYKONANIA] symulacja w miejscu czyli bez losowania idkow
     + zrobic losowanie kwadratu i strony w formie tabilicy {sq: ?, side: ?} ktora jest pomieszana. Generowanie tej tabilicy w update
     + zrobic wiele petli w trakcie jednej klatki + input
-    - wiele warstw np 3 (osobne canvasy)
-    - zrobic typ przelotka, przechodzi przez wszytkie warstwy laczac pola ze soba, nowe polaczenia: up, down
+    + zrobic licznik przeniesionych cz¹stek w pêtli symulacji (to bêdzie wyznacznikiem kiedy zmieniæ zegar)
+    + wiele warstw np 3 (osobne canvasy)
+    + zrobic typ przelotka, przechodzi przez wszytkie warstwy laczac pola ze soba, nowe polaczenia: up, down
     + zrobic wyswietlanie ile procent czasu to rysowanie i symulacja
     - zrobic lepszy wyglad stanu 
     

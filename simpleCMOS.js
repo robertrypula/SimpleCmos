@@ -1,12 +1,12 @@
-var MAX_RESISTANCE = 10000;
-var MAX_PARTICLES = 5000;
+var MAX_RESISTANCE = 128*1024;
+var MAX_PARTICLES = 256;
 var TRAN_SATURATION = 0.5;
 var TRAN_SATURATION_DELTA = 0.1;
 
-var sizeX = 30;
-var sizeY = 13;
-var sizePix = 40;
-var canvasLevelCount = 1;
+var sizeX = 5;
+var sizeY = 3;
+var sizePix = 70;
+var canvasLevelCount = 2;
 
 var toolMode = 0;
 var canvasLevelCurrent = 0;
@@ -20,6 +20,15 @@ var squaresDbActiveRandomPairsCount;  // == squaresDbActiveRandomPairs.length
 var squaresDbChanged = true;
 var showNumbers = false;
 
+var lastMovedParticlesCount = 0;
+
+
+var selectBoxState = 0;
+var selectBoxReady = false;
+var selectBox1 = { x: 0, y: 0, lv: 0 };
+var selectBox2 = { x: 0, y: 0, lv: 0 };
+
+var clipboard = null;
 
 
 function numberFormat(number, decimals, dec_point, thousands_sep) 
@@ -126,7 +135,7 @@ function setup(_sizeX, _sizeY, _sizePix, _canvasLevelCount)
         x = Math.floor(relX / sizePix);
         y = Math.floor(relY / sizePix);
 
-        squareClick(x, y, canvasLevelCurrent, toolMode, parseInt($('#tool-par').val()), parseInt($('#tool-res').val()), 0);
+        squareClick(x, y, canvasLevelCurrent, toolMode, parseInt($('#tool-par').val()), parseInt($('#tool-res').val()), 0, 0, 0);
         
         e.preventDefault();
     });
@@ -138,21 +147,22 @@ function setup(_sizeX, _sizeY, _sizePix, _canvasLevelCount)
         for (cy=0; cy<sizeY; cy++) {
             squaresDb[clv].push(new Array());
             for (cx=0; cx<sizeX; cx++) {
-                squaresDb[clv][cy].push({ lv         : clv,
-                                          x          : cx,
-                                          y          : cy,
-                                          type       : null,
-                                          state      : null,
-                                          lvConn     : null,
-                                          par        : null,
-                                          res        : null,
-                                          top        : null,
-                                          right      : null,
-                                          bottom     : null,
-                                          left       : null,
-                                          ceil       : null,
-                                          floor      : null,
-                                          jQObj      : null
+                squaresDb[clv][cy].push({ lv          : clv,
+                                          x           : cx,
+                                          y           : cy,
+                                          type        : null,
+                                          state       : null,
+                                          lvConnCeil  : null,
+                                          lvConnFloor : null,
+                                          par         : null,
+                                          res         : null,
+                                          top         : null,
+                                          right       : null,
+                                          bottom      : null,
+                                          left        : null,
+                                          ceil        : null,
+                                          floor       : null,
+                                          jQObj       : null
                                         });
             }
         }
@@ -192,7 +202,7 @@ function setup(_sizeX, _sizeY, _sizePix, _canvasLevelCount)
                                 cxN = cx;
                                 cyN = cy;
                                 if (clvN!==null && cxN!==null && cyN!==null)
-                                    squaresDb[clv][cy][cx].top  = squaresDb[clvN][cyN][cxN];
+                                    squaresDb[clv][cy][cx].ceil  = squaresDb[clvN][cyN][cxN];
                                 break;
                         case 5: clvN = (clv+1)>=canvasLevelCount ? null : (clv+1);
                                 cxN = cx;
@@ -254,6 +264,10 @@ function squareInHtmlCreate(sq)
     
     switch (sq.type) {
         case 1: jQObj.addClass('type'+sq.type);
+                if (sq.lvConnCeil)
+                    jQObj.append('<span class="lv-conn-ceil">&nbsp;</span>');
+                if (sq.lvConnFloor)
+                    jQObj.append('<span class="lv-conn-floor">&nbsp;</span>');
                 break;
         case 2: jQObj.addClass('type'+sq.type);
                 break;
@@ -290,6 +304,13 @@ function squareInHtmlUpdate(sq)
     
     if (sq.type==6)
         sq.jQObj.find('> span.state').removeClass('state0').removeClass('state1').addClass('state'+sq.state);
+    
+    if (sq.type==1) {
+        if (sq.lvConnCeil && sq.jQObj.find('> span.lv-conn-ceil').size()==0)
+            sq.jQObj.append('<span class="lv-conn-ceil">&nbsp;</span>');
+        if (sq.lvConnFloor && sq.jQObj.find('> span.lv-conn-floor').size()==0)
+            sq.jQObj.append('<span class="lv-conn-floor">&nbsp;</span>');
+    }
 }
 
 function squareInHtmlDelete(sq)
@@ -299,12 +320,31 @@ function squareInHtmlDelete(sq)
     sq.jQObj = null;
 }
 
-function squareClick(cX, cY, cLv, type, par, res, state, forceMore)
+function squareReset(sq)
 {
+    // reset DB and jquery object
+    sq.type        = null;
+    sq.state       = null;
+    sq.lvConnCeil  = null;
+    sq.lvConnFloor = null;
+    sq.par         = null;
+    sq.res         = null;
+    squareInHtmlDelete(sq);
+}
+
+function squareClick(cX, cY, cLv, type, par, res, state, lvConnCeil, lvConnFloor, forceMore)
+{
+    if (cX<0) return;
+    if (cY<0) return;
+    if (cLv<0) return;
+    if (cX>=sizeX) return;
+    if (cY>=sizeY) return;
+    if (cLv>=canvasLevelCount) return;
+    
     var sq = squaresDb[cLv][cY][cX];
     var inForceMode;
-    
-    
+    var tmp;
+
     if (typeof forceMore === "undefined") 
         inForceMode = false; else
         inForceMode = forceMore ? true : false;
@@ -317,49 +357,111 @@ function squareClick(cX, cY, cLv, type, par, res, state, forceMore)
             sq.state = (sq.state + 1) % 2;
             squareInHtmlUpdate(sq);
         }
+        return;
+    }
 
-    } else {
+    if (type==8) {
         
-        // reset DB and jquery object
-        sq.type   = null;
-        sq.state  = null;
-        sq.lvConn = null;
-        sq.par    = null;
-        sq.res    = null;
-        squareInHtmlDelete(sq);
-        
-        switch (type) {
-            case 1: sq.type = type;
-                    sq.par = par;
-                    sq.res = res;
-                    break;
-            case 2: sq.type = type;
-                    sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
-                    sq.res = (!inForceMode) ? MAX_RESISTANCE : res;
-                    break;
-            case 3: sq.type = type;
-                    sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
-                    sq.res = (!inForceMode) ? 1 : res;
-                    break;
-            case 4: sq.type = type;
-                    sq.par = MAX_PARTICLES;
-                    sq.res = 1;
-                    break;
-            case 5: sq.type = type;
-                    sq.par = 0;
-                    sq.res = 1;
-                    break;
-            case 6: sq.type = type;
-                    sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
-                    sq.res = (!inForceMode) ? 1 : res;
-                    sq.state = state;
-                    break;
+        // toogle level connection
+        if (sq.type==1) {
+            sq.lvConnCeil = (sq.lvConnCeil + 1) % 2;
+            squareInHtmlUpdate(sq);
+            if (sq.ceil!==null && sq.ceil.type==1) {
+                sq.ceil.lvConnFloor = sq.lvConnCeil;
+                squareInHtmlUpdate(sq.ceil);
+            }
+            squaresDbChanged = true;
         }
-        
-        squareInHtmlCreate(sq);
-        squaresDbChanged = true;
+        return;
     }
     
+    if (type==9) {
+
+        // toogle level connection
+        if (sq.type==1) {
+            sq.lvConnFloor = (sq.lvConnFloor + 1) % 2;
+            squareInHtmlUpdate(sq);
+            if (sq.floor!==null && sq.floor.type==1) {
+                sq.floor.lvConnCeil = sq.lvConnFloor;
+                squareInHtmlUpdate(sq.floor);
+            }
+            squaresDbChanged = true;
+        }
+        return;
+    }
+    
+    if (type==10) {
+        // select box
+        if (selectBoxState==0) {            
+            selectBox1 = { x: cX, y: cY, lv: cLv };
+            selectBoxState = 1;
+        } else {
+            selectBox2 = { x: cX, y: cY, lv: cLv };
+            if (selectBox1.x>selectBox2.x) {
+                tmp = selectBox1.x;
+                selectBox1.x = selectBox2.x;
+                selectBox2.x = tmp;
+            }
+            if (selectBox1.y>selectBox2.y) {
+                tmp = selectBox1.y;
+                selectBox1.y = selectBox2.y;
+                selectBox2.y = tmp;
+            }
+            if (selectBox1.lv>selectBox2.lv) {
+                tmp = selectBox1.lv;
+                selectBox1.lv = selectBox2.lv;
+                selectBox2.lv = tmp;
+            }
+            selectBoxReady = true;
+            selectBoxState = 0;
+        }
+        
+        
+        return;
+    }
+    
+    if (type==11) {
+        // paste clipboard
+        clipboardPaste(cLv, cY, cX);
+        squaresDbChanged = true;
+        return;
+    }
+
+
+    squareReset(sq);
+    
+    switch (type) {
+        case 1: sq.type = type;
+                sq.par = par;
+                sq.res = res;
+                sq.lvConnCeil = lvConnCeil;
+                sq.lvConnFloor = lvConnFloor;
+                break;
+        case 2: sq.type = type;
+                sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
+                sq.res = (!inForceMode) ? MAX_RESISTANCE : res;
+                break;
+        case 3: sq.type = type;
+                sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
+                sq.res = (!inForceMode) ? 1 : res;
+                break;
+        case 4: sq.type = type;
+                sq.par = MAX_PARTICLES;
+                sq.res = 1;
+                break;
+        case 5: sq.type = type;
+                sq.par = 0;
+                sq.res = 1;
+                break;
+        case 6: sq.type = type;
+                sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
+                sq.res = (!inForceMode) ? 1 : res;
+                sq.state = state;
+                break;
+    }
+
+    squareInHtmlCreate(sq);
+    squaresDbChanged = true;
 }
 
 function shuffleArray(arr, arrCount)
@@ -368,7 +470,7 @@ function shuffleArray(arr, arrCount)
     var maxIndex = arrCount - 1;
     var tmp, i;
     
-    for (i=0; i<3*arrCount; i++) {
+    for (i=0; i<1*arrCount; i++) {
         firstIndex = Math.floor(Math.random()*(maxIndex +1));
         secondIndex = Math.floor(Math.random()*(maxIndex +1));
         
@@ -404,7 +506,7 @@ function updateActiveSquaresArray()
     squaresDbActiveRandomPairsCount = 0;
     for (i=0; i<squaresDbActiveCount; i++) {
         sq = squaresDbActive[i];
-        for (side=0; side<4; side++)
+        for (side=0; side<6; side++)
             switch (side) {
                 case 0: if (sq.top!==null && sq.top.type) {
                             squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
@@ -422,6 +524,16 @@ function updateActiveSquaresArray()
                         }
                         break;
                 case 3: if (sq.left!==null && sq.left.type) {
+                            squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
+                            squaresDbActiveRandomPairsCount++;
+                        }
+                        break;
+                case 4: if (sq.ceil!==null && sq.ceil.type==1 && sq.lvConnCeil==1 && sq.ceil.lvConnFloor==1) {
+                            squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
+                            squaresDbActiveRandomPairsCount++;
+                        }
+                        break;
+                case 5: if (sq.floor!==null && sq.floor.type==1 && sq.lvConnFloor==1 && sq.floor.lvConnCeil==1) {
                             squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
                             squaresDbActiveRandomPairsCount++;
                         }
@@ -534,6 +646,8 @@ function simulateTwoSquares(sq1, sq2, side)
                 particlesToMove = (Math.random()>0.5) ? 1 : -1;
         }
         */
+       
+        lastMovedParticlesCount += Math.abs(particlesToMove);
 
         P1 = P1 + particlesToMove;
         P2 = P2 - particlesToMove;
@@ -628,6 +742,7 @@ function simulationLoop()
         // generate pair to simulate
         timeSim = speedTestStart();
         for (j=0; j<simLoopsInFrame; j++) {
+            lastMovedParticlesCount = 0;
             shuffleArray(squaresDbActiveRandomPairs, squaresDbActiveRandomPairsCount);
             for (i=0; i<squaresDbActiveRandomPairsCount; i++) {
                 tmp = squaresDbActiveRandomPairs[i];
@@ -639,6 +754,8 @@ function simulationLoop()
                     case 1: simulateTwoSquares(sq, sq.right, side);    break;
                     case 2: simulateTwoSquares(sq, sq.bottom, side);   break;
                     case 3: simulateTwoSquares(sq, sq.left, side);     break;
+                    case 4: simulateTwoSquares(sq, sq.ceil, side);     break;
+                    case 5: simulateTwoSquares(sq, sq.floor, side);    break;
                 }
             }
         }
@@ -667,11 +784,40 @@ function simulationLoop()
                                 'timeAll&nbsp;&nbsp;&nbsp;&nbsp;: ' + numberFormat(timeAll, 3) + 'sek (' + numberFormat(1.0/timeAll, 1) + 'fps) ' + '<br/>' +
                                 'timeSim&nbsp;&nbsp;&nbsp;&nbsp;: ' + numberFormat(timeSim, 3) + 'sek (' + numberFormat(1.0/timeSim, 1) + 'fps) ' + '<br/>' +
                                 //'timeSimOneLoop: ' + numberFormat(timeSimOneLoop, 3) + ' (' + numberFormat(1.0/timeSimOneLoop, 1) + 'fps) ' + '<br/>' +
-                                'timeRender&nbsp;: ' + numberFormat(timeRender, 3) + 'sek (' + numberFormat(1.0/timeRender, 1) + 'fps)'
+                                'timeRender&nbsp;: ' + numberFormat(timeRender, 3) + 'sek (' + numberFormat(1.0/timeRender, 1) + 'fps)' + '<br/>' +
+                                'lastMovedParticlesCount: ' + lastMovedParticlesCount
                                );
     }
    
     setTimeout("simulationLoop()", 1000.0/simFps);
+}
+
+function squarePrepareToSave(sq)
+{
+    return { x           : sq.x,
+             y           : sq.y,
+             lv          : sq.lv,
+             type        : sq.type,
+             state       : sq.state,
+             lvConnCeil  : sq.lvConnCeil,
+             lvConnFloor : sq.lvConnFloor,
+             par         : sq.par,
+             res         : sq.res
+           };
+}
+
+function squareRestoreAndLoad(savedSq)
+{
+    squareClick(parseInt(savedSq.x), 
+                parseInt(savedSq.y), 
+                parseInt(savedSq.lv), 
+                parseInt(savedSq.type), 
+                parseInt(savedSq.par), 
+                parseInt(savedSq.res), 
+                savedSq.state, 
+                savedSq.lvConnCeil, 
+                savedSq.lvConnFloor, 
+                true);
 }
 
 function saveScene()
@@ -689,15 +835,7 @@ function saveScene()
     for (i=0; i<squaresDbActiveCount; i++) {
         sq = squaresDbActive[i];     
         
-        saveArray.project.push({ x      : sq.x,
-                                 y      : sq.y,
-                                 lv     : sq.lv,
-                                 type   : sq.type,
-                                 state  : sq.state,
-                                 lvConn : sq.lvConn,
-                                 par    : sq.par,
-                                 res    : sq.res
-                               });
+        saveArray.project.push(squarePrepareToSave(sq));
     }
 
     $('#saved').val(JSON.stringify(saveArray));
@@ -706,7 +844,7 @@ function saveScene()
 function loadScene()
 {
     var saveArray = JSON.parse($('#saved').val());
-    var i, sq;
+    var i, savedSq;
     
     // rebuild canvas
     $('#squares-count-x').val(saveArray.sizeX);
@@ -716,19 +854,106 @@ function loadScene()
     newScene();
     
     for (i=0; i<saveArray.project.length; i++) {
-        sq = saveArray.project[i];    
-        
-        squareClick(parseInt(sq.x), 
-                    parseInt(sq.y), 
-                    parseInt(sq.lv), 
-                    parseInt(sq.type), 
-                    parseInt(sq.par), 
-                    parseInt(sq.res), 
-                    sq.state, 
-                    true);
+        savedSq = saveArray.project[i];    
+        squareRestoreAndLoad(savedSq);
     }
 
     squaresDbChanged = true;
+}
+
+var predefinedObjects = [ { name       : 'Gate NAND',
+                            predefined : [], // [ x: 0, y: 0, lv, name: 'predefinedType' ]
+                            squares    : [ 
+                                         ]
+                          }
+                        ];
+
+function selectedBoxClear()
+{
+    var x, y, lv, sq;
+    
+    if (!selectBoxReady)
+        return;
+    
+    for (lv=selectBox1.lv; lv<=selectBox2.lv; lv++)
+        for (y=selectBox1.y; y<=selectBox2.y; y++)
+            for (x=selectBox1.x; x<=selectBox2.x; x++) {
+                sq = squaresDb[lv][y][x];
+                squareReset(sq);
+            }
+}
+
+function selectedBoxCutCopy(cut)
+{
+    var x, y, lv, sq, sqToSave;
+    
+    if (!selectBoxReady)
+        return;
+    
+    clipboard = { name       : 'clipboard',
+                  size       : { x: selectBox2.x-selectBox1.x, y: selectBox2.y-selectBox1.y, lv: selectBox2.lv-selectBox1.lv },
+                  predefined : [],
+                  squares    : new Array()
+                };
+    
+    for (lv=selectBox1.lv; lv<=selectBox2.lv; lv++)
+        for (y=selectBox1.y; y<=selectBox2.y; y++)
+            for (x=selectBox1.x; x<=selectBox2.x; x++) {
+                sq = squaresDb[lv][y][x];
+                sqToSave = squarePrepareToSave(sq);
+                sqToSave.x -= selectBox1.x;
+                sqToSave.y -= selectBox1.y;
+                sqToSave.lv -= selectBox1.lv;
+                if (sq.type>0)
+                    clipboard.squares.push(sqToSave);
+                if (cut)
+                    squareReset(sq);
+            }
+}
+
+function selectedBoxCut()
+{
+    selectedBoxCutCopy(true);
+    console.log(clipboard);
+}
+
+function selectedBoxCopy()
+{
+    selectedBoxCutCopy(false);
+    console.log(clipboard);
+}
+
+function clipboardPaste(cLv, cY, cX)
+{
+    var x, y, lv, savedSq, i;
+    
+    if (!clipboard)
+        return;
+    
+    for (lv=cLv; lv<=clipboard.size.lv; lv++)
+        for (y=cY; y<=clipboard.size.y; y++)
+            for (x=cX; x<=clipboard.size.x; x++) {
+                squareClick(cX + x, cY + y, cLv + lv, null);      // insert empty square
+            }
+    
+    for (i=0; i<clipboard.squares.length; i++) {
+        savedSq = clipboard.squares[i];
+        squareClick(parseInt(savedSq.x + cX), 
+                    parseInt(savedSq.y + cY), 
+                    parseInt(savedSq.lv + cLv), 
+                    parseInt(savedSq.type), 
+                    parseInt(savedSq.par), 
+                    parseInt(savedSq.res), 
+                    savedSq.state, 
+                    savedSq.lvConnCeil, 
+                    savedSq.lvConnFloor, 
+                    true);
+    }
+}
+
+function placePredefinedObject(objType)
+{
+
 }
 
 function newScene()
@@ -771,96 +996,6 @@ function setCanvasOpacity(obj)
         $('#canvas-levels').removeClass('transparent');
 }
 
-var keys = {
-    KEY_ESCAPE       : 0,
-    KEY_GRAVE_ACCENT : 1
-}
-var keysState =
-[
-{ keyCode: 0, name: "KEY_ESCAPE", pressed: false },
-{ keyCode: 1, name: "KEY_GRAVE_ACCENT", pressed: false },
-];
-
-var keyboardEventQueue;
-var lastPressedKey;
-var lastPressedKeyTime;
-var keyboardEvent = 
-{
-    keyCode: 0, name: "KEY_ESCAPE", type: 0 /* 0: relased, 1: pressed, 2: repeated */
-}
-
-keysState[keys.KEY_ESCAPE].pressed;
-
-
-
-/*
-                                        00. KEY_ESCAPE
-                <div class="key key-01">01. KEY_GRAVE_ACCENT</div>
-                <div class="key key-02">02. KEY_1</div>
-                <div class="key key-03">03. KEY_2</div>
-                <div class="key key-04">04. KEY_3</div>
-                <div class="key key-05">05. KEY_4</div>
-                <div class="key key-06">06. KEY_5</div>
-                <div class="key key-07">07. KEY_6</div>
-                <div class="key key-08">08. KEY_7</div>
-                <div class="key key-09">09. KEY_8</div>
-                <div class="key key-10">10. KEY_9</div>
-                <div class="key key-11">11. KEY_0</div>
-                <div class="key key-12">12. KEY_MINUS</div>
-                <div class="key key-13">13. KEY_EQUALS</div>
-                <div class="key key-14">14. KEY_BACKSPACE</div>
-                <div class="key key-15">15. KEY_INSERT</div>
-                <div class="key key-16">16. KEY_HOME</div>
-                <div class="key key-17">17. KEY_PAGE_UP</div>
-                <div class="key key-18">18. KEY_TAB</div>
-                <div class="key key-19">19. KEY_Q</div>
-                <div class="key key-20">20. KEY_W</div>
-                <div class="key key-21">21. KEY_E</div>
-                <div class="key key-22">22. KEY_R</div>
-                <div class="key key-23">23. KEY_T</div>
-                <div class="key key-24">24. KEY_Y</div>
-                <div class="key key-25">25. KEY_U</div>
-                <div class="key key-26">26. KEY_I</div>
-                <div class="key key-27">27. KEY_O</div>
-                <div class="key key-28">28. KEY_P</div>
-                <div class="key key-29">29. KEY_SQUARE_BRACKET_LEFT</div> 
-                <div class="key key-30">30. KEY_SQUARE_BRACKET_RIGHT</div>
-                <div class="key key-31">31. KEY_BACKSLASH</div>
-                <div class="key key-32">32. KEY_DELETE</div>
-                <div class="key key-33">33. KEY_END</div>
-                <div class="key key-34">34. KEY_PAGE_DOWN</div>
-                <div class="key key-35">35. KEY_CAPS_LOCK</div>
-                <div class="key key-36">36. KEY_A</div>
-                <div class="key key-37">37. KEY_S</div>
-                <div class="key key-38">38. KEY_D</div>
-                <div class="key key-39">39. KEY_F</div>
-                <div class="key key-40">40. KEY_G</div>
-                <div class="key key-41">41. KEY_H</div>
-                <div class="key key-42">42. KEY_J</div>
-                <div class="key key-43">43. KEY_K</div>
-                <div class="key key-44">44. KEY_L</div>
-                <div class="key key-45">45. KEY_SEMICOLON</div>
-                <div class="key key-46">46. KEY_APOSTROPHE</div>
-                <div class="key key-47">47. KEY_ENTER</div>
-                <div class="key key-48">48. KEY_SHIFT</div>
-                <div class="key key-49">49. KEY_Z</div>
-                <div class="key key-50">50. KEY_X</div>
-                <div class="key key-51">51. KEY_C</div>
-                <div class="key key-52">52. KEY_V</div>
-                <div class="key key-53">53. KEY_B</div>
-                <div class="key key-54">54. KEY_N</div>
-                <div class="key key-55">55. KEY_M</div>
-                <div class="key key-56">56. KEY_COMMA</div>
-                <div class="key key-57">57. KEY_DOT</div>
-                <div class="key key-58">58. KEY_SLASH</div>
-                <div class="key key-59">59. KEY_ARROW_UP</div>
-                <div class="key key-60">60. KEY_CTRL</div>
-                <div class="key key-61">61. KEY_SPACE</div>
-                <div class="key key-62">62. KEY_ALT</div>
-                <div class="key key-63">63. KEY_ARROW_LEFT</div>
-                <div class="key key-64">64. KEY_ARROW_DOWN</div>
-                <div class="key key-65">65. KEY_ARROW_RIGHT</div>
-*/
 
 
 $(document).ready(function() {
@@ -875,151 +1010,4 @@ $(document).ready(function() {
     setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
     
     
-    var keypressed = false;
-    var nowOnStart = (new Date()).getTime();
-    
-    
-    // http://www.javascripter.net/faq/keycodes.htm
-    // http://stackoverflow.com/questions/8562528/is-there-is-a-way-to-detect-which-side-the-alt-key-is-pressed
-    
-    /*
-     delay rate  : 500 ms        (lub 250, 500, 750, 1000 ms)
-     repeat rate : 10.9 chars/s = 0.092 ms
-    
-     (that is, the inter-character delay is (2 ^ B) * (D + 8) / 240 sec, where B gives Bits 4-3 and D gives Bits 2-0).
-    
-     max is:  30.0 chars/s = 0.033 ms
-     min is:   2.0 chars/s = 0.500 ms
-                0         1         2         3         4         5         6         7
-      0      30.0      26.7      24.0      21.8      20.0      18.5      17.1      16.0
-      8      15.0      13.3      12.0      10.9      10.0       9.2       8.6       8.0
-      16      7.5       6.7       6.0       5.5       5.0       4.6       4.3       4.0
-      24      3.7       3.3       3.0       2.7       2.5       2.3       2.1       2.0
-    
-    */
-    /*
-
-  8      Backspace
-  9      Tab
- 13      Enter
- 16      Shift
- 17      Ctrl
- 18      Alt
- 19      Pause, Break              [x]
- 20      CapsLock
- 27      Esc
- 32      Space
- 33      Page Up
- 34      Page Down
- 35      End
- 36      Home
- 37      Left arrow
- 38      Up arrow
- 39      Right arrow
- 40      Down arrow
- 44      PrntScrn (see below†)     [x]
- 45      Insert
- 46      Delete
- 48-57   0 to 9
- 65-90   A to Z  
-112-123  F1 to F12                 [x]
-144      NumLock                   [x]
-145      ScrollLock                [x]
-
-188      , <
-190      . >
-191      / ?
-192      ` ~
-219      [ { (see below‡)
-220      \ |
-221      ] }
-222      ' "
-    
-Opera   MSIE  Firefox  Safari  Chrome    Key pressed
- 59     186      59     186     186      ; :   
- 61     187     107     187     187      = +             
-109     189     109     189     189      - _     
-    
-Opera    All Others (NumLock On/Off)     Key pressed
-_________________________________________________________
-
-48/45       96/45                        Numpad 0 Ins    
-49/35       97/35                        Numpad 1 End    
-50/40       98/40                        Numpad 2 Down   
-51/34       99/34                        Numpad 3 Pg Down
-52/37      100/37                        Numpad 4 Left   
-53/12      101/12                        Numpad 5        
-54/39      102/39                        Numpad 6 Right  
-55/36      103/36                        Numpad 7 Home   
-56/38      104/38                        Numpad 8 Up     
-57/33      105/33                        Numpad 9 Pg Up  
-42/42      106/106                       Numpad *        
-43/43      107/107                       Numpad +        
-45/45      109/109   (45 is also Ins)    Numpad -        
-78/46      110/46    (78 is also N)      Numpad . Del    
-47/47      111/111                       Numpad /     
-
-     */
-    $(document).keydown(function (e) {
-        // logic for key event here
-        var now = (new Date()).getTime();
-        
-        if (e.keyCode==27) {
-            if (keyboardState[0].pressed!=true) {
-                keyboardState[0].pressed = true;
-                console.log( keyboardState[0] );
-            }
-        }
-        if (e.keyCode==192) {
-            if (keyboardState[1].pressed!=true) {
-                keyboardState[1].pressed = true;
-                console.log( keyboardState[1] );
-            }
-        }
-        
-        /*
-        if (e.keyCode==32) {
-            if (keypressed==false) {
-            
-                squareClick(0, 1, 0, 7, 1, 1, true, false); //toogle
-                keypressed = true;
-            }
-        }
-        if (console)
-            console.log('PRESS  : ' + e.keyCode + ', ' +(now - nowOnStart));
-        */
-        
-        e.preventDefault();
-    });
-    $(document).keyup(function (e) {
-        // logic for key event here
-        var now = (new Date()).getTime();
-        
-        
-        if (e.keyCode==27) {
-            if (keyboardState[0].pressed!=false) {
-                keyboardState[0].pressed = false;
-                console.log( keyboardState[0] );
-            }
-        }
-        if (e.keyCode==192) {
-            if (keyboardState[1].pressed!=false) {
-                keyboardState[1].pressed = false;
-                console.log( keyboardState[1] );
-            }
-        }
-        
-        /*
-        if (e.keyCode==32) {
-            if (keypressed==true) {
-                
-                squareClick(0, 1, 0, 7, 1, 1, true, false); //toogle
-                keypressed = false;
-            }
-        }
-        if (console)
-            console.log('______ : '+e.keyCode + ', ' + (now - nowOnStart));
-        */
-        e.preventDefault();
-    });
 });
