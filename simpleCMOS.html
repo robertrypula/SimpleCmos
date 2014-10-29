@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pl">
+    <head>
+        <meta charset="UTF-8" />
+        <title>???</title>
+        
+        <script src="js/jquery-1.9.1.js"></script>
+        
+        <!--[if lte IE 8]>
+            <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>             
+        <![endif]-->
+        
+        
+        <style>
+            
+            body { background-color: #bbb; color: #00ff24; padding: 30px; font-size: 12px; font-family: Tahoma; }
+            a { color: white; text-decoration: none; }
+            a.tool-button { float: left; display: block; margin: 0 10px 10px 0; background-color: #aaa; border: 1px solid #666; padding: 3px 10px; }
+            a.tool-button.active { background-color: green; }
+            .clear { width: 0px; height: 0px; overflow: hidden; clear: both; }
+            .fleft { float: left; }
+            .fright { float: right; }
+            
+            #canvas { background-color: #222; position: relative; }
+            #canvas a { display: block; position: absolute; color: red; }
+            #canvas a i { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; }
+            #canvas a b { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; }
+            #canvas a:hover { outline: 1px solid yellow; }
+            
+            #canvas a.type1 { background-color: white; }
+            
+            
+        </style>
+        
+        <script>
+            var sizeX = 50;
+            var sizeY = 30;
+            var sizePix = 20;
+            var toolMode = 0;
+            var MAX_RESISTANCE = 1000;
+            var MAX_PARTICLES = 500;
+            var activeSquares = new Array();
+            var activeSquaresIndexes = new Array();
+            var activeSquaresCount = 0;
+            var squareSides = new Array();
+            
+            function shuffle (inputArr) 
+            {
+                var valArr = [],
+                k = '',
+                i = 0,
+                strictForIn = false,
+                populateArr = [];
+                
+                for (k in inputArr) { // Get key and value arrays
+                    if (inputArr.hasOwnProperty(k)) {
+                        valArr.push(inputArr[k]);
+                        if (strictForIn) {
+                            delete inputArr[k];
+                        }
+                    }
+                }
+                valArr.sort(function () {
+                    return 0.5 - Math.random();
+                });
+                
+                // BEGIN REDUNDANT
+                this.php_js = this.php_js || {};
+                this.php_js.ini = this.php_js.ini || {};
+                // END REDUNDANT
+                strictForIn = this.php_js.ini['phpjs.strictForIn'] && this.php_js.ini['phpjs.strictForIn'].local_value && this.php_js.ini['phpjs.strictForIn'].local_value !== 'off';
+                populateArr = strictForIn ? inputArr : populateArr;
+                
+                for (i = 0; i < valArr.length; i++) { // Repopulate the old array
+                    populateArr[i] = valArr[i];
+                }
+                
+                return strictForIn || populateArr;
+            }
+
+            function setup()
+            {
+                var x, y;
+                var left, top, width, height;
+                var c = $('#canvas');
+                
+                width = sizePix - 1;
+                height = sizePix - 1;
+                
+                for (y=0; y<sizeY; y++)
+                    for (x=0; x<sizeX; x++) {
+                        
+                        left = x * sizePix;
+                        top = y * sizePix;
+                        
+                        c.append('<a id="sq-'+x+'-'+y+'" x="'+x+'" y="'+y+'"  href="javascript:void(0)" onClick="squareClick($(this))" style="top: '+top+'px; left: '+left+'px; width: '+width+'px; height: '+height+'px;">&nbsp;</a>');
+                        
+                    }
+                c.width(sizePix*sizeX);
+                c.height(sizePix*sizeY);
+                
+                squareSides.push(0);
+                squareSides.push(1);
+                squareSides.push(2);
+                squareSides.push(3);
+            }
+        
+            function toolButtonClick(obj)
+            {
+                $('#toolbar > a').removeClass('active');
+                obj.addClass('active');
+                toolMode = obj.attr('type');
+            }
+            
+            function squareClick(obj)
+            {
+                var toolRes = $('#tool-res').val();
+                var toolPar = $('#tool-par').val();
+                
+                obj.html('');
+                obj.removeClass('type1').removeClass('type2').removeClass('type3').removeClass('active');
+                            
+                switch (parseInt(toolMode)) {
+                    case 0: 
+                            break;
+                    case 1: obj.addClass('type1').addClass('active');
+                            obj.append('<b>'+toolPar+'</b>').
+                                append('<i>'+toolRes+'</i>');
+                            break;
+                    case 2: obj.addClass('type2').addClass('active');
+                            obj.append('<b>'+toolPar+'</b>').
+                                append('<i>'+MAX_RESISTANCE+'</i>');
+                            break;
+                    case 3: obj.addClass('type3').addClass('active');
+                            obj.append('<b>'+toolPar+'</b>').
+                                append('<i>'+1+'</i>');
+                            break;
+                }
+            }
+            
+            function updateScene()
+            {
+                var sq, _x, _y;
+                
+                activeSquares = new Array();
+                activeSquaresIndexes = new Array();
+                activeSquaresCount = 0;
+                $('#canvas > a.active').each(function() {
+                    _x = parseInt($(this).attr('x'));
+                    _y = parseInt($(this).attr('y'));
+                    
+                    sq = { obj    : $(this),
+                           x      : _x,
+                           y      : _y,
+                           left   : (($('#canvas > #sq-'+(_x-1)+'-'+_y+'.active').size()==1) ? $('#canvas > #sq-'+(_x-1)+'-'+_y+'.active') : null),
+                           right  : (($('#canvas > #sq-'+(_x+1)+'-'+_y+'.active').size()==1) ? $('#canvas > #sq-'+(_x+1)+'-'+_y+'.active') : null),
+                           top    : (($('#canvas > #sq-'+_x+'-'+(_y-1)+'.active').size()==1) ? $('#canvas > #sq-'+_x+'-'+(_y-1)+'.active') : null),
+                           bottom : (($('#canvas > #sq-'+_x+'-'+(_y+1)+'.active').size()==1) ? $('#canvas > #sq-'+_x+'-'+(_y+1)+'.active') : null)
+                         };
+                         
+                    activeSquares.push(sq);
+                    activeSquaresIndexes.push(activeSquaresCount);
+                    activeSquaresCount++;
+                });
+            }
+            
+            function simulateTwoSquares(sq1, sq2, side)
+            {
+                var R1, R2, P1, P2;
+                var pDiff;
+                var R12;
+                var particlesToMove;
+                var isSq1Tran = false, isSq2Tran = false;
+                var transistorMode = false;
+                var gateParticles;
+                var sourceDrainResistance;
+                
+                // simulate transistors
+                isSq1Tran = (sq1.hasClass('type2') ? 2 : ( sq1.hasClass('type1') ? 1 : 0 ));
+                isSq2Tran = (sq2.hasClass('type2') ? 2 : ( sq2.hasClass('type1') ? 1 : 0 ));
+                
+                if (isSq1Tran!=false ^ isSq2Tran!=false)
+                    if (isSq1Tran!=false) {
+                        // sq1 is transistor
+                        if (side==3) {
+                            transistorMode = true;
+                            
+                            gateParticles = parseInt(sq2.find('> b').html());
+                            sourceDrainResistance = 1;
+                            sq1.find('> i').html(sourceDrainResistance);
+                        }
+                        
+                    } else {
+                        // sq2 is transistor
+                        if (side==1) {
+                            transistorMode = true;
+                            
+                            gateParticles = parseInt(sq1.find('> b').html());
+                            sourceDrainResistance = 1;
+                            sq2.find('> i').html(sourceDrainResistance);
+                        }
+                    }
+                
+                
+                // compute current between squares
+                if (!transistorMode) {
+                    P1 = parseInt(sq1.find('> b').html());
+                    P2 = parseInt(sq2.find('> b').html());
+                    R1 = parseInt(sq1.find('> i').html());
+                    R2 = parseInt(sq2.find('> i').html());
+
+                    R12 = R1 + R2;
+                    pDiff = P2 - P1;
+                    particlesToMove = Math.round( pDiff / R12 );
+                    if (particlesToMove==0 && Math.abs(pDiff)>0) {
+                        particlesToMove = (Math.random()>0.5) ? 1 : -1;
+                    }
+
+                    P1 = P1 + particlesToMove;
+                    P2 = P2 - particlesToMove;
+
+                    sq1.find('> b').html(P1);
+                    sq2.find('> b').html(P2);
+                    sq1.find('> i').html(R1);
+                    sq2.find('> i').html(R2);
+                }
+            }
+            
+            function simulationLoop()
+            {
+                var i, j, sqRandIdx, sideRandIdx;
+                var sq;
+                
+                if ($('#sim-active').is(':checked') && activeSquaresCount>0) {
+                    
+                    activeSquaresIndexes = shuffle(activeSquaresIndexes);
+                    for (i=0; i<activeSquaresCount; i++) {
+                        sqRandIdx = activeSquaresIndexes[i];
+                        squareSides = shuffle(squareSides);
+                        for (j=0; j<4; j++) {
+                            sideRandIdx = squareSides[j];
+                            
+                            
+                            // A->B is the same as B->A
+                            if (sideRandIdx>=2)
+                                continue;
+                            
+                            sq = activeSquares[sqRandIdx];
+                            
+                            switch (sideRandIdx) {
+                                case 0: if (sq.top!==null) {
+                                            simulateTwoSquares(sq.obj, sq.top, sideRandIdx);
+                                        }
+                                        break;
+                                case 1: if (sq.right!==null) { 
+                                            simulateTwoSquares(sq.obj, sq.right, sideRandIdx);
+                                        }
+                                        break;
+                                case 2: if (sq.bottom!==null) {
+                                            simulateTwoSquares(sq.obj, sq.bottom, sideRandIdx);
+                                        }
+                                        break;
+                                case 3: if (sq.left!==null) {
+                                            simulateTwoSquares(sq.obj, sq.left, sideRandIdx);
+                                        }
+                                        break;
+                            }
+                        }
+                    }
+                    
+                }
+                setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
+            }
+            
+            
+            $(document).ready(function() {
+                
+                setup();
+                setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
+            });
+        </script>
+    </head>
+    
+    
+    <body>    
+        
+        <div id="toolbar">
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="0" class="tool-button active">PUSTE</a>
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="1" class="tool-button">Przewód</a>
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="2" class="tool-button">Tranzystor normalnie zamknięty</a>
+            <a href="javascript:void(0)" onClick="toolButtonClick($(this))" type="3" class="tool-button">Tranzystor normalnie otwarty</a>
+            <div class="clear">&nbsp;</div>
+            
+            Resystancja: <input id="tool-res" type="text" value="1" />
+            Liczba cząsteczek: <input id="tool-par" type="text" value="250" />
+            Symulacja aktywna:  <input id="sim-active" type="checkbox" />
+            Fps:  <input id="sim-fps" type="text" value="1" />
+            
+            <a href="javascript:void(0)" onClick="updateScene()" class="tool-button">Update sceny</a>
+            <div class="clear">&nbsp;</div>
+        </div>
+        
+        <div id="canvas"></div>
+        
+    </body>
+</html>
