@@ -15,7 +15,7 @@
         
         <style>
             
-            body { background-color: #bbb; color: #00ff24; padding: 30px; font-size: 12px; font-family: Tahoma; }
+            body { background-color: #bbb; color: black; padding: 30px; font-size: 12px; font-family: Tahoma; }
             a { color: white; text-decoration: none; }
             a.tool-button { float: left; display: block; margin: 0 10px 10px 0; background-color: #aaa; border: 1px solid #666; padding: 3px 10px; }
             a.tool-button.active { background-color: green; }
@@ -31,8 +31,8 @@
             #canvas-levels div.canvas a span.state { display: none; }
             #canvas-levels div.canvas a span.state state0 { }
             #canvas-levels div.canvas a span.state state1 { }
-            #canvas-levels div.canvas a span.res { background-color: black; z-index: 2; }
-            #canvas-levels div.canvas a span.par { background-color: red; z-index: 1; }
+            #canvas-levels div.canvas a span.res { background-color: black; }
+            #canvas-levels div.canvas a span.par { background-color: red; }
             
             #canvas-levels.show-numbers div.canvas a span.res { opacity: 1.0 !important; color: yellow; height: 50%; font-size: 9px; line-height: 9px; }
             #canvas-levels.show-numbers div.canvas a span.par { opacity: 1.0 !important; color: yellow; height: 50%; top: 50%; font-size: 9px; line-height: 9px; }
@@ -43,9 +43,12 @@
             #canvas-levels div.canvas a.type4 { background-color: white; outline: 3px dashed #af2020; }
             #canvas-levels div.canvas a.type5 { background-color: white; outline: 3px dashed white; }
             #canvas-levels div.canvas a.type6 { background-color: white; outline: 1px dashed yellow; }
+                           
+            #canvas-levels.transparent div.canvas.active { opacity: 0.9; }
+            #canvas-levels.transparent div.canvas.inactive { opacity: 0.6; }
             
-            #canvas-hover-box { position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; z-index: 100; }
-            #canvas-hover-box div { position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; }
+            #canvas-hover-box { position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; font-size: 1px; line-height: 1px; z-index: 100; }
+            #canvas-hover-box div { position: absolute; top: 0px; left: 0px; width: 0px; height: 0px; overflow: hidden; font-size: 1px; line-height: 1px; }
             #canvas-hover-box div.t { position: absolute; top: 0px; left: 0px; width: 0px; height: 1px; background-color: yellow; }
             #canvas-hover-box div.r { position: absolute; top: 0px; left: 0px; width: 1px; height: 0px; background-color: yellow; }
             #canvas-hover-box div.b { position: absolute; top: 0px; left: 0px; width: 0px; height: 1px; background-color: yellow; }
@@ -53,7 +56,7 @@
             
             #saved { font-family: Arial; font-size: 8px; line-height: 10px; width: 600px; height: 100px; overflow-y: auto; display: block; padding: 10px; border: 1px solid gray; background-color: #eee; }
             
-            #sim-info-box { height: 30px; }
+            #sim-info-box { min-height: 30px; padding: 10px 0; font-family: monospace; }
             
         </style>
         
@@ -105,11 +108,7 @@
         </div>
         
         <div id="canvas-container">
-            <div id="canvas-levels">
-                <div class="canvas canvas2" level="2"></div>
-                <div class="canvas canvas1" level="1"></div>
-                <div class="canvas canvas0" level="0"></div>                
-            </div>
+            <div id="canvas-levels"></div>
             <div id="canvas-hover-box">
                 <div class="t">&nbsp;</div>
                 <div class="r">&nbsp;</div>
@@ -117,6 +116,10 @@
                 <div class="l">&nbsp;</div>
             </div>
         </div>
+        
+        Przezroczystość warstw <input id="canvas-level-opacity" type="checkbox" value="1" onChange="setCanvasOpacity($(this))" />
+        <div id="canvas-level-buttons"></div>
+        <div class="clear">&nbsp;</div>
         
         <br/>
         Type: <b id="info-type"></b><br/>

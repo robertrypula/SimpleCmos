@@ -27,7 +27,7 @@ function numberFormat(number, decimals, dec_point, thousands_sep)
     number = (number + '').replace(/[^0-9+\-Ee.]/g, '');
     var n = !isFinite(+number) ? 0 : +number,
     prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
-    sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+    sep = (typeof thousands_sep === 'undefined') ? ' ' : thousands_sep,
     dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
     s = '',
     toFixedFix = function (n, prec) {
@@ -62,9 +62,10 @@ function speedTestEnd(ts)
 function setup(_sizeX, _sizeY, _sizePix, _canvasLevelCount)
 {
     var cBase = $('#canvas-levels');
-    var c = $('#canvas-levels > div.canvas');
+    var c;
     var clv, cx, cy, side;
     var clvN, cxN, cyN;
+    var i;
     
     sizeX = _sizeX;
     sizeY = _sizeY;
@@ -77,12 +78,23 @@ function setup(_sizeX, _sizeY, _sizePix, _canvasLevelCount)
     $('#toolbar > a.tool-button[type='+toolMode+']').addClass('active');
     
     
+    $('#canvas-level-buttons').html('');
+    for (i=0; i<canvasLevelCount; i++) {
+        $('#canvas-level-buttons').append('<a href="javascript:void(0)" level="' + i + '" class="tool-button" onClick="setCanvasLevel($(this))">' + i + '</a>');
+    }
+    $('#canvas-level-buttons > a[level='+canvasLevelCurrent+']').addClass('active');
+    
+    $('#canvas-levels').html('');
+    for (i=(canvasLevelCount-1); i>=0; i--) {
+        $('#canvas-levels').append('<div class="canvas canvas' + i + '" level="' + i + '"></div>');
+    }
+    c = $('#canvas-levels > div.canvas');
+    
     if (showNumbers) 
         $('#canvas-levels').addClass('show-numbers'); else
         $('#canvas-levels').removeClass('show-numbers');
     
 
-    c.find('> a').remove();
     cBase.unbind('mousemove');
     cBase.unbind('click');
     cBase.width(sizePix*sizeX);
@@ -231,8 +243,9 @@ function squareInHtmlCreate(sq)
         squareInHtmlDelete(sq);
     
     jQObj = $('<a href="javascript:void(0)" style="width: '+(sizePix-1)+'px; height: '+(sizePix-1)+'px; top: '+(sq.y*sizePix)+'px; left: '+(sq.x*sizePix)+'px;"></a>');
-    jQObj.append('<span class="res" style="opacity: '+sq.res/MAX_RESISTANCE+'">&nbsp;</span>');
     jQObj.append('<span class="par" style="opacity: '+sq.par/MAX_PARTICLES+'">&nbsp;</span>');
+    jQObj.append('<span class="res" style="opacity: '+sq.res/MAX_RESISTANCE+'">&nbsp;</span>');
+    
     
     if (showNumbers) {
         jQObj.find('> span.res').html(sq.res);
@@ -597,6 +610,7 @@ function simulationLoop()
     var timeSim;
     var timeSimOneLoop;
     var timeRender;
+    var iddleInfo, iddleDiff;
 
     simLoopsInFrame = simLoopsInFrame>0 ? simLoopsInFrame : 1;
 
@@ -639,14 +653,21 @@ function simulationLoop()
         }
         timeRender = speedTestEnd(timeRender);
         
-        
         timeAll = speedTestEnd(timeAll);
         
-        $('#sim-info-box').html('timeFrame: ' + numberFormat(timeFrame, 3) + ', ' +
-                                'timeAll: ' + numberFormat(timeAll, 3) + ', ' +
-                                'timeSim: ' + numberFormat(timeSim, 3) + ', ' +
-                                'timeSimOneLoop: ' + numberFormat(timeSimOneLoop, 3) + ', ' +
-                                'timeRender: ' + numberFormat(timeRender, 3)
+        timeFrame = timeFrame < 0.002 ? 0.002 : timeFrame;
+        timeAll = timeAll < 0.002 ? 0.002 : timeAll;
+        timeSim = timeSim < 0.002 ? 0.002 : timeSim;
+        timeSimOneLoop = timeSimOneLoop < 0.002 ? 0.002 : timeSimOneLoop;
+        timeRender = timeRender < 0.002 ? 0.002 : timeRender;
+        
+        iddleDiff = timeFrame - timeAll;
+        iddleInfo = (iddleDiff>0) ? (' iddle ' + numberFormat(iddleDiff, 3) + 'sek (' + numberFormat(((iddleDiff/timeFrame)*100.0), 1) + '%)' + '<br/>') : (' no iddle' + '<br/>');
+        $('#sim-info-box').html('timeFrame&nbsp;&nbsp;: ' + numberFormat(timeFrame, 3) + 'sek (' + numberFormat(1.0/timeFrame, 1) + 'fps) ' + iddleInfo +
+                                'timeAll&nbsp;&nbsp;&nbsp;&nbsp;: ' + numberFormat(timeAll, 3) + 'sek (' + numberFormat(1.0/timeAll, 1) + 'fps) ' + '<br/>' +
+                                'timeSim&nbsp;&nbsp;&nbsp;&nbsp;: ' + numberFormat(timeSim, 3) + 'sek (' + numberFormat(1.0/timeSim, 1) + 'fps) ' + '<br/>' +
+                                //'timeSimOneLoop: ' + numberFormat(timeSimOneLoop, 3) + ' (' + numberFormat(1.0/timeSimOneLoop, 1) + 'fps) ' + '<br/>' +
+                                'timeRender&nbsp;: ' + numberFormat(timeRender, 3) + 'sek (' + numberFormat(1.0/timeRender, 1) + 'fps)'
                                );
     }
    
@@ -720,7 +741,35 @@ function newScene()
     setup(sX, sY, sPix, cLvCount);
 }
 
+function setCanvasLevel(obj)
+{
+    var level = parseInt(obj.attr('level'));
+    var canvas;
+    var i;
+    
+    $('#canvas-level-buttons > a').removeClass('active');
+    obj.addClass('active');
+    canvasLevelCurrent = level;
+    
+    for (i=(canvasLevelCount-1); i>=0; i--) {
+        canvas = $('#canvas-levels > div.canvas'+i);
+        $('#canvas-levels').append(canvas);
+    }
+    
+    $('#canvas-levels > div.canvas').removeClass('active');
+    $('#canvas-levels > div.canvas').addClass('inactive');
 
+    canvas = $('#canvas-levels > div.canvas'+canvasLevelCurrent);
+    canvas.addClass('active').removeClass('inactive');
+    $('#canvas-levels').append(canvas);
+}
+
+function setCanvasOpacity(obj)
+{
+    if (obj.is(':checked'))
+        $('#canvas-levels').addClass('transparent'); else
+        $('#canvas-levels').removeClass('transparent');
+}
 
 
 $(document).ready(function() {
