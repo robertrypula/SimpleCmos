@@ -5,6 +5,7 @@
         <title>???</title>
         
         <script src="js/jquery-1.9.1.js"></script>
+        <script src="js/json2.js"></script>
         
         <!--[if lte IE 8]>
             <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>             
@@ -23,12 +24,19 @@
             
             #canvas { background-color: #222; position: relative; }
             #canvas a { display: block; position: absolute; color: red; }
-            #canvas a i { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; }
-            #canvas a b { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; }
+            #canvas a i { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; overflow: hidden; }
+            #canvas a b { display: block; font-size: 8px; font-weight: normal; font-style: normal; text-align: center; overflow: hidden; }
+            
+            #canvas a i { width: 100%; height: 100%; position: absolute; top: 0px; left: 0px; background-color: black; z-index: 2; } /* res */
+            #canvas a b { width: 100%; height: 100%; position: absolute; top: 0px; left: 0px; background-color: red; z-index: 1; } /* par */
+            
             #canvas a:hover { outline: 1px solid yellow; }
             
             #canvas a.type1 { background-color: white; }
+            #canvas a.type2 { background-color: white; outline: 3px solid orange; }
+            #canvas a.type3 { background-color: white; outline: 3px solid blue; }
             
+            #saved { font-family: Arial; font-size: 8px; line-height: 10px; width: 1200px; height: 200px; overflow-y: auto; display: block; padding: 10px; border: 1px solid gray; background-color: #eee; }
             
         </style>
         
@@ -37,14 +45,16 @@
             var sizeY = 30;
             var sizePix = 20;
             var toolMode = 0;
-            var MAX_RESISTANCE = 1000;
+            var MAX_RESISTANCE = 2500;
             var MAX_PARTICLES = 500;
+            var TRAN_SATURATION = 0.6;
+            var TRAN_SATURATION_DELTA = 0.08;
             var activeSquares = new Array();
             var activeSquaresIndexes = new Array();
             var activeSquaresCount = 0;
             var squareSides = new Array();
             
-            function shuffle (inputArr) 
+            function shuffle(inputArr) 
             {
                 var valArr = [],
                 k = '',
@@ -126,14 +136,20 @@
                     case 1: obj.addClass('type1').addClass('active');
                             obj.append('<b>'+toolPar+'</b>').
                                 append('<i>'+toolRes+'</i>');
+                            obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
+                            obj.find('> i').css('opacity', toolRes/MAX_RESISTANCE); 
                             break;
                     case 2: obj.addClass('type2').addClass('active');
                             obj.append('<b>'+toolPar+'</b>').
                                 append('<i>'+MAX_RESISTANCE+'</i>');
+                            obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
+                            obj.find('> i').css('opacity', MAX_RESISTANCE/MAX_RESISTANCE); 
                             break;
                     case 3: obj.addClass('type3').addClass('active');
                             obj.append('<b>'+toolPar+'</b>').
                                 append('<i>'+1+'</i>');
+                            obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
+                            obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
                             break;
                 }
             }
@@ -170,40 +186,79 @@
                 var pDiff;
                 var R12;
                 var particlesToMove;
+                var computeCurrent = true;
                 var isSq1Tran = false, isSq2Tran = false;
                 var transistorMode = false;
+                var transType, tranSquare, gateSquare;
                 var gateParticles;
-                var sourceDrainResistance;
+                var gateFactor, tranFactor;
+                var tranResistance;
                 
-                // simulate transistors
-                isSq1Tran = (sq1.hasClass('type2') ? 2 : ( sq1.hasClass('type1') ? 1 : 0 ));
-                isSq2Tran = (sq2.hasClass('type2') ? 2 : ( sq2.hasClass('type1') ? 1 : 0 ));
+                // check is one from pair is transistor
+                isSq1Tran = (sq1.hasClass('type2') ? 2 : ( sq1.hasClass('type3') ? 3 : false ));
+                isSq2Tran = (sq2.hasClass('type2') ? 2 : ( sq2.hasClass('type3') ? 3 : false ));
                 
-                if (isSq1Tran!=false ^ isSq2Tran!=false)
+                if ((isSq1Tran!==false && isSq2Tran===false) || (isSq1Tran===false && isSq2Tran!==false))
                     if (isSq1Tran!=false) {
                         // sq1 is transistor
                         if (side==3) {
                             transistorMode = true;
-                            
-                            gateParticles = parseInt(sq2.find('> b').html());
-                            sourceDrainResistance = 1;
-                            sq1.find('> i').html(sourceDrainResistance);
-                        }
+                            transType = isSq1Tran;
+                            tranSquare = sq1;
+                            gateSquare = sq2;
+                            computeCurrent = false;
+                        } else
+                            if (side==1)
+                                computeCurrent = false;
                         
                     } else {
                         // sq2 is transistor
                         if (side==1) {
                             transistorMode = true;
-                            
-                            gateParticles = parseInt(sq1.find('> b').html());
-                            sourceDrainResistance = 1;
-                            sq2.find('> i').html(sourceDrainResistance);
-                        }
+                            transType = isSq2Tran;
+                            tranSquare = sq2;
+                            gateSquare = sq1;
+                            computeCurrent = false;
+                        } else
+                            if (side==3)
+                                computeCurrent = false;
                     }
-                
+                    
+                // change transistor resistance
+                if (transistorMode) {
+                    gateParticles = parseInt(gateSquare.find('> b').html());
+                    gateFactor = gateParticles / MAX_PARTICLES;
+                    gateFactor = gateFactor > 1.0 ? 1.0 : gateFactor;
+                    gateFactor = gateFactor < 0.0 ? 0.0 : gateFactor;
+                    switch (transType) {
+                        case 2: if (gateFactor<=(TRAN_SATURATION-TRAN_SATURATION_DELTA)) {
+                                    tranFactor = 1.0;
+                                } else
+                                    if (gateFactor>=(TRAN_SATURATION+TRAN_SATURATION_DELTA)) {
+                                        tranFactor = 0.0;
+                                    } else {
+                                        tranFactor = 0.5;  // TODO add cosine easing
+                                    }
+                                break;
+                        case 3: if (gateFactor<=(TRAN_SATURATION-TRAN_SATURATION_DELTA)) {
+                                    tranFactor = 0.0;
+                                } else
+                                    if (gateFactor>=(TRAN_SATURATION+TRAN_SATURATION_DELTA)) {
+                                        tranFactor = 1.0;
+                                    } else {
+                                        tranFactor = 0.5;  // TODO add cosine easing
+                                    }
+                                break;
+                    }
+
+                    tranResistance = 1 + (tranFactor * (MAX_RESISTANCE-1));
+                    tranResistance = Math.round(tranResistance);
+                    
+                    tranSquare.find('> i').html(tranResistance).css('opacity', (tranResistance/MAX_RESISTANCE));
+                }
                 
                 // compute current between squares
-                if (!transistorMode) {
+                if (computeCurrent) {
                     P1 = parseInt(sq1.find('> b').html());
                     P2 = parseInt(sq2.find('> b').html());
                     R1 = parseInt(sq1.find('> i').html());
@@ -213,16 +268,25 @@
                     pDiff = P2 - P1;
                     particlesToMove = Math.round( pDiff / R12 );
                     if (particlesToMove==0 && Math.abs(pDiff)>0) {
-                        particlesToMove = (Math.random()>0.5) ? 1 : -1;
+                        if (Math.random()>0.9)
+                            particlesToMove = (Math.random()>0.5) ? 1 : -1;
                     }
 
                     P1 = P1 + particlesToMove;
                     P2 = P2 - particlesToMove;
+                    
+                    if (P1<0) {
+                        P2 = P2 - P1;
+                        P1 = 0;
+                    }
+                    if (P2<0) {
+                        P1 = P1 - P2;
+                        P2 = 0;
+                    }
 
-                    sq1.find('> b').html(P1);
-                    sq2.find('> b').html(P2);
-                    sq1.find('> i').html(R1);
-                    sq2.find('> i').html(R2);
+                    sq1.find('> b').html(P1).css('opacity', P1/MAX_PARTICLES); 
+                    sq2.find('> b').html(P2).css('opacity', P2/MAX_PARTICLES);
+                   
                 }
             }
             
@@ -272,6 +336,54 @@
                 setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
             }
             
+            function saveScene()
+            {
+                var sq;
+                var _x, _y;
+                var saveArray = new Array();
+                
+                $('#canvas > a.active').each(function() {
+                    _x = parseInt($(this).attr('x'));
+                    _y = parseInt($(this).attr('y'));
+                    
+                    sq = { x      : _x,
+                           y      : _y,
+                           type   : ($(this).hasClass('type1') ? 1 : ( $(this).hasClass('type2') ? 2 : ( $(this).hasClass('type3') ? 3 : false ) )),
+                           par    : parseInt($(this).find('> b').html()),
+                           res    : parseInt($(this).find('> i').html())
+                         };
+                         
+                    saveArray.push(sq);
+                });
+                
+                $('#saved').val(JSON.stringify(saveArray));
+            }
+            
+            function loadScene()
+            {
+                var saveArray = JSON.parse($('#saved').val());
+                var i;
+                var aObj;
+                var sa;
+                
+                $('#canvas > a').each(function() { 
+                    $(this).html('');
+                    $(this).removeClass('type1').removeClass('type2').removeClass('type3').removeClass('active');
+                });
+                
+                for (i=0; i<saveArray.length; i++) {
+                    sa = saveArray[i];
+                    
+                    aObj = $('#sq-'+sa.x+'-'+sa.y);
+                    aObj.addClass('type'+sa.type).addClass('active');
+                    
+                    aObj.append('<b>'+sa.par+'</b>').
+                         append('<i>'+sa.res+'</i>');
+                    
+                    aObj.find('> b').css('opacity', sa.par/MAX_PARTICLES); 
+                    aObj.find('> i').css('opacity', sa.res/MAX_RESISTANCE); 
+                }
+            }
             
             $(document).ready(function() {
                 
@@ -294,13 +406,18 @@
             Resystancja: <input id="tool-res" type="text" value="1" />
             Liczba cząsteczek: <input id="tool-par" type="text" value="250" />
             Symulacja aktywna:  <input id="sim-active" type="checkbox" />
-            Fps:  <input id="sim-fps" type="text" value="1" />
+            Fps:  <input id="sim-fps" type="text" value="40" />
             
             <a href="javascript:void(0)" onClick="updateScene()" class="tool-button">Update sceny</a>
+            <a href="javascript:void(0)" onClick="saveScene()" class="tool-button">Save sceny</a>
+            <a href="javascript:void(0)" onClick="loadScene()" class="tool-button">Load sceny</a>
             <div class="clear">&nbsp;</div>
         </div>
         
         <div id="canvas"></div>
+        
+        <br/>
+        <textarea id="saved">[{"x":20,"y":3,"type":1,"par":500,"res":1},{"x":21,"y":3,"type":1,"par":500,"res":1},{"x":22,"y":3,"type":1,"par":500,"res":1},{"x":23,"y":3,"type":1,"par":500,"res":1},{"x":24,"y":3,"type":1,"par":500,"res":1},{"x":25,"y":3,"type":1,"par":500,"res":1},{"x":26,"y":3,"type":1,"par":500,"res":1},{"x":27,"y":3,"type":1,"par":500,"res":1},{"x":28,"y":3,"type":1,"par":500,"res":1},{"x":29,"y":3,"type":1,"par":500,"res":1},{"x":30,"y":3,"type":1,"par":500,"res":1},{"x":31,"y":3,"type":1,"par":500,"res":1},{"x":32,"y":3,"type":1,"par":500,"res":1},{"x":20,"y":4,"type":1,"par":500,"res":1},{"x":21,"y":4,"type":1,"par":500,"res":1},{"x":22,"y":4,"type":1,"par":500,"res":1},{"x":23,"y":4,"type":1,"par":500,"res":1},{"x":24,"y":4,"type":1,"par":500,"res":1},{"x":25,"y":4,"type":1,"par":500,"res":1},{"x":26,"y":4,"type":1,"par":500,"res":1},{"x":27,"y":4,"type":1,"par":500,"res":1},{"x":28,"y":4,"type":1,"par":500,"res":1},{"x":29,"y":4,"type":1,"par":500,"res":1},{"x":30,"y":4,"type":1,"par":500,"res":1},{"x":31,"y":4,"type":1,"par":500,"res":1},{"x":32,"y":4,"type":1,"par":500,"res":1},{"x":20,"y":5,"type":1,"par":500,"res":1},{"x":21,"y":5,"type":1,"par":500,"res":1},{"x":22,"y":5,"type":1,"par":500,"res":1},{"x":23,"y":5,"type":1,"par":500,"res":1},{"x":24,"y":5,"type":1,"par":500,"res":1},{"x":25,"y":5,"type":1,"par":500,"res":1},{"x":26,"y":5,"type":1,"par":500,"res":1},{"x":27,"y":5,"type":1,"par":500,"res":1},{"x":28,"y":5,"type":1,"par":500,"res":1},{"x":29,"y":5,"type":1,"par":500,"res":1},{"x":30,"y":5,"type":1,"par":500,"res":1},{"x":31,"y":5,"type":1,"par":500,"res":1},{"x":32,"y":5,"type":1,"par":500,"res":1},{"x":20,"y":6,"type":1,"par":500,"res":1},{"x":21,"y":6,"type":1,"par":500,"res":1},{"x":22,"y":6,"type":1,"par":500,"res":1},{"x":23,"y":6,"type":1,"par":500,"res":1},{"x":24,"y":6,"type":1,"par":500,"res":1},{"x":25,"y":6,"type":1,"par":500,"res":1},{"x":26,"y":6,"type":1,"par":500,"res":1},{"x":27,"y":6,"type":1,"par":500,"res":1},{"x":28,"y":6,"type":1,"par":500,"res":1},{"x":29,"y":6,"type":1,"par":500,"res":1},{"x":30,"y":6,"type":1,"par":500,"res":1},{"x":31,"y":6,"type":1,"par":500,"res":1},{"x":32,"y":6,"type":1,"par":500,"res":1},{"x":20,"y":7,"type":1,"par":500,"res":1},{"x":21,"y":7,"type":1,"par":500,"res":1},{"x":22,"y":7,"type":1,"par":500,"res":1},{"x":23,"y":7,"type":1,"par":500,"res":1},{"x":24,"y":7,"type":1,"par":500,"res":1},{"x":25,"y":7,"type":1,"par":500,"res":1},{"x":26,"y":7,"type":1,"par":500,"res":1},{"x":27,"y":7,"type":1,"par":500,"res":1},{"x":28,"y":7,"type":1,"par":500,"res":1},{"x":29,"y":7,"type":1,"par":500,"res":1},{"x":30,"y":7,"type":1,"par":500,"res":1},{"x":31,"y":7,"type":1,"par":500,"res":1},{"x":32,"y":7,"type":1,"par":500,"res":1},{"x":18,"y":8,"type":1,"par":250,"res":1},{"x":19,"y":8,"type":1,"par":250,"res":1},{"x":20,"y":8,"type":1,"par":500,"res":1},{"x":21,"y":8,"type":1,"par":500,"res":1},{"x":22,"y":8,"type":1,"par":500,"res":1},{"x":23,"y":8,"type":1,"par":500,"res":1},{"x":24,"y":8,"type":1,"par":500,"res":1},{"x":25,"y":8,"type":1,"par":500,"res":1},{"x":26,"y":8,"type":1,"par":500,"res":1},{"x":27,"y":8,"type":1,"par":500,"res":1},{"x":28,"y":8,"type":1,"par":500,"res":1},{"x":29,"y":8,"type":1,"par":500,"res":1},{"x":30,"y":8,"type":1,"par":500,"res":1},{"x":31,"y":8,"type":1,"par":500,"res":1},{"x":32,"y":8,"type":1,"par":500,"res":1},{"x":18,"y":9,"type":1,"par":250,"res":1},{"x":22,"y":9,"type":1,"par":250,"res":1},{"x":26,"y":9,"type":1,"par":250,"res":1},{"x":30,"y":9,"type":1,"par":250,"res":1},{"x":18,"y":10,"type":1,"par":250,"res":1},{"x":20,"y":10,"type":1,"par":250,"res":1},{"x":21,"y":10,"type":1,"par":250,"res":1},{"x":22,"y":10,"type":3,"par":250,"res":1},{"x":24,"y":10,"type":1,"par":250,"res":1},{"x":25,"y":10,"type":1,"par":250,"res":1},{"x":26,"y":10,"type":3,"par":250,"res":1},{"x":28,"y":10,"type":1,"par":250,"res":1},{"x":29,"y":10,"type":1,"par":250,"res":1},{"x":30,"y":10,"type":3,"par":250,"res":1},{"x":18,"y":11,"type":1,"par":250,"res":1},{"x":20,"y":11,"type":1,"par":250,"res":1},{"x":22,"y":11,"type":1,"par":250,"res":1},{"x":24,"y":11,"type":1,"par":250,"res":1},{"x":26,"y":11,"type":1,"par":250,"res":1},{"x":28,"y":11,"type":1,"par":250,"res":1},{"x":30,"y":11,"type":1,"par":250,"res":1},{"x":18,"y":12,"type":1,"par":250,"res":1},{"x":19,"y":12,"type":1,"par":250,"res":1},{"x":20,"y":12,"type":1,"par":250,"res":1},{"x":22,"y":12,"type":1,"par":250,"res":1},{"x":23,"y":12,"type":1,"par":250,"res":1},{"x":24,"y":12,"type":1,"par":250,"res":1},{"x":26,"y":12,"type":1,"par":250,"res":1},{"x":27,"y":12,"type":1,"par":250,"res":1},{"x":28,"y":12,"type":1,"par":250,"res":1},{"x":30,"y":12,"type":1,"par":250,"res":1},{"x":31,"y":12,"type":1,"par":250,"res":1},{"x":32,"y":12,"type":1,"par":250,"res":1},{"x":33,"y":12,"type":1,"par":250,"res":1},{"x":20,"y":13,"type":1,"par":250,"res":1},{"x":22,"y":13,"type":1,"par":250,"res":1},{"x":24,"y":13,"type":1,"par":250,"res":1},{"x":26,"y":13,"type":1,"par":250,"res":1},{"x":28,"y":13,"type":1,"par":250,"res":1},{"x":30,"y":13,"type":1,"par":250,"res":1},{"x":20,"y":14,"type":1,"par":250,"res":1},{"x":21,"y":14,"type":1,"par":250,"res":1},{"x":22,"y":14,"type":2,"par":250,"res":2500},{"x":24,"y":14,"type":1,"par":250,"res":1},{"x":25,"y":14,"type":1,"par":250,"res":1},{"x":26,"y":14,"type":2,"par":250,"res":2500},{"x":28,"y":14,"type":1,"par":250,"res":1},{"x":29,"y":14,"type":1,"par":250,"res":1},{"x":30,"y":14,"type":2,"par":250,"res":2500},{"x":22,"y":15,"type":1,"par":250,"res":1},{"x":26,"y":15,"type":1,"par":250,"res":1},{"x":30,"y":15,"type":1,"par":250,"res":1},{"x":20,"y":16,"type":1,"par":0,"res":1},{"x":21,"y":16,"type":1,"par":0,"res":1},{"x":22,"y":16,"type":1,"par":0,"res":1},{"x":23,"y":16,"type":1,"par":0,"res":1},{"x":24,"y":16,"type":1,"par":0,"res":1},{"x":25,"y":16,"type":1,"par":0,"res":1},{"x":26,"y":16,"type":1,"par":0,"res":1},{"x":27,"y":16,"type":1,"par":0,"res":1},{"x":28,"y":16,"type":1,"par":0,"res":1},{"x":29,"y":16,"type":1,"par":0,"res":1},{"x":30,"y":16,"type":1,"par":0,"res":1},{"x":31,"y":16,"type":1,"par":0,"res":1},{"x":32,"y":16,"type":1,"par":0,"res":1},{"x":20,"y":17,"type":1,"par":0,"res":1},{"x":21,"y":17,"type":1,"par":0,"res":1},{"x":22,"y":17,"type":1,"par":0,"res":1},{"x":23,"y":17,"type":1,"par":0,"res":1},{"x":24,"y":17,"type":1,"par":0,"res":1},{"x":25,"y":17,"type":1,"par":0,"res":1},{"x":26,"y":17,"type":1,"par":0,"res":1},{"x":27,"y":17,"type":1,"par":0,"res":1},{"x":28,"y":17,"type":1,"par":0,"res":1},{"x":29,"y":17,"type":1,"par":0,"res":1},{"x":30,"y":17,"type":1,"par":0,"res":1},{"x":31,"y":17,"type":1,"par":0,"res":1},{"x":32,"y":17,"type":1,"par":0,"res":1},{"x":20,"y":18,"type":1,"par":0,"res":1},{"x":21,"y":18,"type":1,"par":0,"res":1},{"x":22,"y":18,"type":1,"par":0,"res":1},{"x":23,"y":18,"type":1,"par":0,"res":1},{"x":24,"y":18,"type":1,"par":0,"res":1},{"x":25,"y":18,"type":1,"par":0,"res":1},{"x":26,"y":18,"type":1,"par":0,"res":1},{"x":27,"y":18,"type":1,"par":0,"res":1},{"x":28,"y":18,"type":1,"par":0,"res":1},{"x":29,"y":18,"type":1,"par":0,"res":1},{"x":30,"y":18,"type":1,"par":0,"res":1},{"x":31,"y":18,"type":1,"par":0,"res":1},{"x":32,"y":18,"type":1,"par":0,"res":1},{"x":20,"y":19,"type":1,"par":0,"res":1},{"x":21,"y":19,"type":1,"par":0,"res":1},{"x":22,"y":19,"type":1,"par":0,"res":1},{"x":23,"y":19,"type":1,"par":0,"res":1},{"x":24,"y":19,"type":1,"par":0,"res":1},{"x":25,"y":19,"type":1,"par":0,"res":1},{"x":26,"y":19,"type":1,"par":0,"res":1},{"x":27,"y":19,"type":1,"par":0,"res":1},{"x":28,"y":19,"type":1,"par":0,"res":1},{"x":29,"y":19,"type":1,"par":0,"res":1},{"x":30,"y":19,"type":1,"par":0,"res":1},{"x":31,"y":19,"type":1,"par":0,"res":1},{"x":32,"y":19,"type":1,"par":0,"res":1},{"x":20,"y":20,"type":1,"par":0,"res":1},{"x":21,"y":20,"type":1,"par":0,"res":1},{"x":22,"y":20,"type":1,"par":0,"res":1},{"x":23,"y":20,"type":1,"par":0,"res":1},{"x":24,"y":20,"type":1,"par":0,"res":1},{"x":25,"y":20,"type":1,"par":0,"res":1},{"x":26,"y":20,"type":1,"par":0,"res":1},{"x":27,"y":20,"type":1,"par":0,"res":1},{"x":28,"y":20,"type":1,"par":0,"res":1},{"x":29,"y":20,"type":1,"par":0,"res":1},{"x":30,"y":20,"type":1,"par":0,"res":1},{"x":31,"y":20,"type":1,"par":0,"res":1},{"x":32,"y":20,"type":1,"par":0,"res":1},{"x":20,"y":21,"type":1,"par":0,"res":1},{"x":21,"y":21,"type":1,"par":0,"res":1},{"x":22,"y":21,"type":1,"par":0,"res":1},{"x":23,"y":21,"type":1,"par":0,"res":1},{"x":24,"y":21,"type":1,"par":0,"res":1},{"x":25,"y":21,"type":1,"par":0,"res":1},{"x":26,"y":21,"type":1,"par":0,"res":1},{"x":27,"y":21,"type":1,"par":0,"res":1},{"x":28,"y":21,"type":1,"par":0,"res":1},{"x":29,"y":21,"type":1,"par":0,"res":1},{"x":30,"y":21,"type":1,"par":0,"res":1},{"x":31,"y":21,"type":1,"par":0,"res":1},{"x":32,"y":21,"type":1,"par":0,"res":1}]</textarea>
         
     </body>
 </html>

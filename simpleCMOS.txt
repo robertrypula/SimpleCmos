@@ -1,0 +1,48 @@
+
+Symulacja na planszy z kwadratow. Pole moze byc typu:
+
+0 - puste pole
+1 - wire
+2 - transistor open by default
+3 - transistor close by default
+
+Pole moze posiadac atrybuty:
+
+resistance: liczba od 1 do 1000
+particles: 0 - 500
+
+Symulacja polega na losowym wybraniu pola i postapieniu zgodnie z algorytmem:
+
+Wez sasiada i zobacz czy wystepuje roznica w liczebnosci czasteczek.
+Jesli tak oblicz liczbe czasteczek do przeniesienia tam gdzie jest ich mniej:
+
+R = U/I  ->   U = R*I   ->   I = U/R
+
+particlesToMove = round( parDiff/(R + Rneighbour) )
+
+500 - 400 / (1+30) = 100 / 31 = 3
+
+469 - 431 / 31 = 38 / 31 = 1
+
+468 - 432 / 31 = 
+
+
+Narzedzia:  wstaw nic, wstaw dziure, wstawianie liczby czasteczek zgodnie z liczba z inputa, wstawienie rezystancji zgodnie z liczba z inputa
+
+
+
+TODO:
+    - dobrac odpowiednio parametry tranzystorow  0 - 250 - 500
+                                           tranzystor normalnie zamkniety:  powinien sie otwierac -> 0.65 np od 0.75-0.1 do 0.75+0.1 = zamkniety [0.55 - 0.85] otwarty
+                                             tranzystor normalnie otwarty:  powinien sie zamykac -> 0.35 np od 0.35-0.1 do 0.35+0.1 = zamkniety [0.25 - 0.45] otwary
+    - przeniesc do funkcji powielony kod
+    - zrobic wczytywanie calej sceny do RAMu a nie jak jest teraz w DOM
+    - zrobic wiele petli w trakcie jednej klatki + input
+    - zrobic wyswietlanie ile procent czasu to rysowanie i symulacja
+    - zrobic nowy typ: zasilanie i masa - beda zawsze dawac 0 lub MAX_PARTICLES i nie bedzie im sie to odejmowac
+    - zrobic nowy typ: switch ktory raz puszcza z gory, a raz z dolu gdy sie zrobi na nim trigger
+    - przeniesc update scene do runSimButtonClick
+    - nowy button 'global set particles' - z inputa liczba
+    - wiele warstw np 3
+    - zrobic typ przelotka, przechodzi przez wszytkie warstwy laczac pola ze soba, nowe polaczenia: up, down
+    - zrobic lepszy wyglad stanu 
