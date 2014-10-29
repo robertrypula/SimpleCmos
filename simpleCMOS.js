@@ -2,60 +2,87 @@ var MAX_RESISTANCE = 10000;
 var MAX_PARTICLES = 5000;
 var TRAN_SATURATION = 0.5;
 var TRAN_SATURATION_DELTA = 0.1;
-var sizeX = 4;
-var sizeY = 3;
+
+var sizeX = 30;
+var sizeY = 13;
 var sizePix = 40;
+var canvasLevelCount = 1;
+
 var toolMode = 0;
 var canvasLevelCurrent = 0;
-var canvasLevelCount = 2;
-var activeSquares = new Array();
-var activeSquaresIndexes = new Array();
-var activeSquaresCount = 0;
-var squareSides = new Array();
-var sceneChanged = true;
-var squaresDb;
 
-function shuffle(inputArr)
+var squaresDb;                        // 3D array with all squares event empty
+var squaresDbActive;                  // 1D array with only squares with type!==null
+var squaresDbActiveCount;             // == squaresDbActive.length
+var squaresDbActiveRandomPairs;       // 1D array with all active squares pairs
+var squaresDbActiveRandomPairsCount;  // == squaresDbActiveRandomPairs.length
+
+var squaresDbChanged = true;
+var showNumbers = false;
+
+
+
+function numberFormat(number, decimals, dec_point, thousands_sep) 
 {
-    var valArr = [],
-    k = '',
-    i = 0,
-    strictForIn = false,
-    populateArr = [];
-
-    for (k in inputArr) { // Get key and value arrays
-        if (inputArr.hasOwnProperty(k)) {
-            valArr.push(inputArr[k]);
-            if (strictForIn) {
-                delete inputArr[k];
-            }
-        }
+    number = (number + '').replace(/[^0-9+\-Ee.]/g, '');
+    var n = !isFinite(+number) ? 0 : +number,
+    prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+    sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
+    dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
+    s = '',
+    toFixedFix = function (n, prec) {
+        var k = Math.pow(10, prec);
+        return '' + Math.round(n * k) / k;
+    };
+    // Fix for IE parseFloat(0.55).toFixed(0) = 0;
+    s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+    if (s[0].length > 3) {
+        s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
     }
-    valArr.sort(function () {
-        return 0.5 - Math.random();
-    });
-
-    // BEGIN REDUNDANT
-    this.php_js = this.php_js || {};
-    this.php_js.ini = this.php_js.ini || {};
-    // END REDUNDANT
-    strictForIn = this.php_js.ini['phpjs.strictForIn'] && this.php_js.ini['phpjs.strictForIn'].local_value && this.php_js.ini['phpjs.strictForIn'].local_value !== 'off';
-    populateArr = strictForIn ? inputArr : populateArr;
-
-    for (i = 0; i < valArr.length; i++) { // Repopulate the old array
-        populateArr[i] = valArr[i];
+    if ((s[1] || '').length < prec) {
+        s[1] = s[1] || '';
+        s[1] += new Array(prec - s[1].length + 1).join('0');
     }
-
-    return strictForIn || populateArr;
+    return s.join(dec);
 }
 
-function setup()
+function speedTestStart()
+{
+    return new Date().getTime();
+}
+
+function speedTestEnd(ts)
+{
+    var end = new Date().getTime();
+    var time = end - ts;
+    
+    return time/1000.0;
+} 
+
+function setup(_sizeX, _sizeY, _sizePix, _canvasLevelCount)
 {
     var cBase = $('#canvas-levels');
     var c = $('#canvas-levels > div.canvas');
     var clv, cx, cy, side;
     var clvN, cxN, cyN;
+    
+    sizeX = _sizeX;
+    sizeY = _sizeY;
+    sizePix = _sizePix;
+    canvasLevelCount = _canvasLevelCount;
+    
+    canvasLevelCurrent = 0;
+    toolMode = 0;
+    $('#toolbar > a.tool-button').removeClass('active');
+    $('#toolbar > a.tool-button[type='+toolMode+']').addClass('active');
+    
+    
+    if (showNumbers) 
+        $('#canvas-levels').addClass('show-numbers'); else
+        $('#canvas-levels').removeClass('show-numbers');
+    
 
+    c.find('> a').remove();
     cBase.unbind('mousemove');
     cBase.unbind('click');
     cBase.width(sizePix*sizeX);
@@ -87,7 +114,9 @@ function setup()
         x = Math.floor(relX / sizePix);
         y = Math.floor(relY / sizePix);
 
-        squareClick(x, y);
+        squareClick(x, y, canvasLevelCurrent, toolMode, parseInt($('#tool-par').val()), parseInt($('#tool-res').val()), 0);
+        
+        e.preventDefault();
     });
 
     // assign memory
@@ -97,23 +126,21 @@ function setup()
         for (cy=0; cy<sizeY; cy++) {
             squaresDb[clv].push(new Array());
             for (cx=0; cx<sizeX; cx++) {
-                squaresDb[clv][cy].push({ lv     : clv,
-                                          x      : cx,
-                                          y      : cy,
-                                          type   : null,
-                                          state  : null,
-                                          lvConn : null,
-                                          par    : null,
-                                          res    : null,
-                                          parNew : null,
-                                          resNew : null,
-                                          top    : null,
-                                          right  : null,
-                                          bottom : null,
-                                          left   : null,
-                                          ceil   : null,
-                                          floor  : null,
-                                          jQObj  : null
+                squaresDb[clv][cy].push({ lv         : clv,
+                                          x          : cx,
+                                          y          : cy,
+                                          type       : null,
+                                          state      : null,
+                                          lvConn     : null,
+                                          par        : null,
+                                          res        : null,
+                                          top        : null,
+                                          right      : null,
+                                          bottom     : null,
+                                          left       : null,
+                                          ceil       : null,
+                                          floor      : null,
+                                          jQObj      : null
                                         });
             }
         }
@@ -167,12 +194,8 @@ function setup()
         }
     }
 
-    squareSides.push(0);
-    squareSides.push(1);
-    squareSides.push(2);
-    squareSides.push(3);
-
-    $('#tool-par').val(Math.round(0.5*MAX_PARTICLES));
+    squaresDbActive = new Array();
+    squaresDbActiveCount = 0;
 }
 
 function toolButtonClick(obj)
@@ -185,7 +208,7 @@ function toolButtonClick(obj)
 function squareMouseMove(x, y)
 {
     var sq = squaresDb[canvasLevelCurrent][y][x];
-//    console.log(sq);
+
     return;
     var res  = parseInt(obj.find('> i').html());
     var par  = parseInt(obj.find('> b').html());
@@ -201,190 +224,205 @@ function squareMouseMove(x, y)
 function squareInHtmlCreate(sq)
 {
     var jQObj;
-//                squaresDb[clv][cy].push({ lv     : clv,
-//                                          x      : cx,
-//                                          y      : cy,
-//                                          type   : null,
-//                                          state  : null,
-//                                          lvConn : null,
-//                                          par    : null,
-//                                          res    : null,
+    
     if (sq.type===null)
         return;
     if (sq.jQObj)
         squareInHtmlDelete(sq);
     
-
-    jQObj = $('<a href="javascript:void(0)"></a>');
+    jQObj = $('<a href="javascript:void(0)" style="width: '+(sizePix-1)+'px; height: '+(sizePix-1)+'px; top: '+(sq.y*sizePix)+'px; left: '+(sq.x*sizePix)+'px;"></a>');
+    jQObj.append('<span class="res" style="opacity: '+sq.res/MAX_RESISTANCE+'">&nbsp;</span>');
+    jQObj.append('<span class="par" style="opacity: '+sq.par/MAX_PARTICLES+'">&nbsp;</span>');
     
-    switch (toolMode) {
-        case 0: 
+    if (showNumbers) {
+        jQObj.find('> span.res').html(sq.res);
+        jQObj.find('> span.par').html(sq.par);
+    }
+    
+    switch (sq.type) {
+        case 1: jQObj.addClass('type'+sq.type);
                 break;
-        case 1: obj.addClass('type'+toolMode).addClass('active');
-                obj.attr('type', type);
-                obj.append('<b>'+toolPar+'</b>').
-                    append('<i>'+toolRes+'</i>');
-                obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                obj.find('> i').css('opacity', toolRes/MAX_RESISTANCE); 
+        case 2: jQObj.addClass('type'+sq.type);
                 break;
-        case 2: obj.addClass('type'+toolMode).addClass('active');
-                obj.attr('type', toolMode);
-                obj.append('<b>'+toolPar+'</b>').
-                    append('<i>'+MAX_RESISTANCE+'</i>');
-                obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                obj.find('> i').css('opacity', MAX_RESISTANCE/MAX_RESISTANCE); 
+        case 3: jQObj.addClass('type'+sq.type);
                 break;
-        case 3: obj.addClass('type'+toolMode).addClass('active');
-                obj.attr('type', toolMode);
-                obj.append('<b>'+toolPar+'</b>').
-                    append('<i>'+1+'</i>');
-                obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
+        case 4: jQObj.addClass('type'+sq.type);
                 break;
-        case 4: obj.addClass('type'+toolMode).addClass('active');
-                obj.attr('type', toolMode);
-                obj.append('<b>'+MAX_PARTICLES+'</b>').
-                    append('<i>'+1+'</i>');
-                obj.find('> b').css('opacity', MAX_PARTICLES/MAX_PARTICLES); 
-                obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
+        case 5: jQObj.addClass('type'+sq.type); 
                 break;
-        case 5: obj.addClass('type'+toolMode).addClass('active');
-                obj.attr('type', toolMode);
-                obj.append('<b>'+0+'</b>').
-                    append('<i>'+1+'</i>');
-                obj.find('> b').css('opacity', 0/MAX_PARTICLES); 
-                obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
-                break;
-        case 6: obj.addClass('type'+toolMode).addClass('active');
-                obj.attr('type', toolMode);
-                obj.attr('state', 0);
-                obj.append('<b>'+Math.round(0.5*MAX_PARTICLES)+'</b>').
-                    append('<i>'+1+'</i>');
-                obj.find('> b').css('opacity', 0.5*MAX_PARTICLES); 
-                obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
+        case 6: jQObj.addClass('type'+sq.type);
+                jQObj.append('<span class="state state'+sq.state+'">&nbsp;</span>');
                 break;
     }
+    
+    $('#canvas-levels > div.canvas'+sq.lv).append(jQObj);
+    sq.jQObj = jQObj;
 }
 
 function squareInHtmlUpdate(sq)
 {
-    sq.jQObj;
+    if (sq.type===null)
+        return;
+    
+    if (!sq.jQObj)
+        return;
+    
+    sq.jQObj.find('> span.res').css('opacity', sq.res/MAX_RESISTANCE);
+    sq.jQObj.find('> span.par').css('opacity', sq.par/MAX_PARTICLES);
+    
+    if (showNumbers) {
+        sq.jQObj.find('> span.res').html(sq.res);
+        sq.jQObj.find('> span.par').html(sq.par);
+    }
+    
+    if (sq.type==6)
+        sq.jQObj.find('> span.state').removeClass('state0').removeClass('state1').addClass('state'+sq.state);
 }
 
 function squareInHtmlDelete(sq)
 {
-    sq.jQObj.remove();
+    if (sq.jQObj)
+        sq.jQObj.remove();
     sq.jQObj = null;
 }
 
-function squareClick(x, y)
+function squareClick(cX, cY, cLv, type, par, res, state, forceMore)
 {
-    var sq = squaresDb[canvasLevelCurrent][y][x];
-    console.log(sq);
-    return;
-    var toolRes = $('#tool-res').val();
-    var toolPar = $('#tool-par').val();
+    var sq = squaresDb[cLv][cY][cX];
+    var inForceMode;
+    
+    
+    if (typeof forceMore === "undefined") 
+        inForceMode = false; else
+        inForceMode = forceMore ? true : false;
 
 
-
-    if (toolMode==7) {
+    if (type==7) {
 
         // toogle internal state
-        if (parseInt(obj.attr('type'))==6) {
-            state = parseInt(obj.attr('state'));
-            state = (state + 1) % 2;
-            obj.attr('state', state);
+        if (sq.type==6) {
+            sq.state = (sq.state + 1) % 2;
+            squareInHtmlUpdate(sq);
         }
 
     } else {
-
-        // clear square
-
-
-        switch (toolMode) {
-            case 0: 
+        
+        // reset DB and jquery object
+        sq.type   = null;
+        sq.state  = null;
+        sq.lvConn = null;
+        sq.par    = null;
+        sq.res    = null;
+        squareInHtmlDelete(sq);
+        
+        switch (type) {
+            case 1: sq.type = type;
+                    sq.par = par;
+                    sq.res = res;
                     break;
-            case 1: obj.addClass('type'+toolMode).addClass('active');
-                    obj.attr('type', type);
-                    obj.append('<b>'+toolPar+'</b>').
-                        append('<i>'+toolRes+'</i>');
-                    obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                    obj.find('> i').css('opacity', toolRes/MAX_RESISTANCE); 
+            case 2: sq.type = type;
+                    sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
+                    sq.res = (!inForceMode) ? MAX_RESISTANCE : res;
                     break;
-            case 2: obj.addClass('type'+toolMode).addClass('active');
-                    obj.attr('type', toolMode);
-                    obj.append('<b>'+toolPar+'</b>').
-                        append('<i>'+MAX_RESISTANCE+'</i>');
-                    obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                    obj.find('> i').css('opacity', MAX_RESISTANCE/MAX_RESISTANCE); 
+            case 3: sq.type = type;
+                    sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
+                    sq.res = (!inForceMode) ? 1 : res;
                     break;
-            case 3: obj.addClass('type'+toolMode).addClass('active');
-                    obj.attr('type', toolMode);
-                    obj.append('<b>'+toolPar+'</b>').
-                        append('<i>'+1+'</i>');
-                    obj.find('> b').css('opacity', toolPar/MAX_PARTICLES); 
-                    obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
+            case 4: sq.type = type;
+                    sq.par = MAX_PARTICLES;
+                    sq.res = 1;
                     break;
-            case 4: obj.addClass('type'+toolMode).addClass('active');
-                    obj.attr('type', toolMode);
-                    obj.append('<b>'+MAX_PARTICLES+'</b>').
-                        append('<i>'+1+'</i>');
-                    obj.find('> b').css('opacity', MAX_PARTICLES/MAX_PARTICLES); 
-                    obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
+            case 5: sq.type = type;
+                    sq.par = 0;
+                    sq.res = 1;
                     break;
-            case 5: obj.addClass('type'+toolMode).addClass('active');
-                    obj.attr('type', toolMode);
-                    obj.append('<b>'+0+'</b>').
-                        append('<i>'+1+'</i>');
-                    obj.find('> b').css('opacity', 0/MAX_PARTICLES); 
-                    obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
-                    break;
-            case 6: obj.addClass('type'+toolMode).addClass('active');
-                    obj.attr('type', toolMode);
-                    obj.attr('state', 0);
-                    obj.append('<b>'+Math.round(0.5*MAX_PARTICLES)+'</b>').
-                        append('<i>'+1+'</i>');
-                    obj.find('> b').css('opacity', 0.5*MAX_PARTICLES); 
-                    obj.find('> i').css('opacity', 1/MAX_RESISTANCE); 
+            case 6: sq.type = type;
+                    sq.par = (!inForceMode) ? Math.round(0.5*MAX_PARTICLES) : par;
+                    sq.res = (!inForceMode) ? 1 : res;
+                    sq.state = state;
                     break;
         }
+        
+        squareInHtmlCreate(sq);
+        squaresDbChanged = true;
     }
-
-    sceneChanged = true;
+    
 }
 
-function updateScene()
+function shuffleArray(arr, arrCount)
 {
-    var sq, _x, _y;
+    var firstIndex, secondIndex;
+    var maxIndex = arrCount - 1;
+    var tmp, i;
+    
+    for (i=0; i<3*arrCount; i++) {
+        firstIndex = Math.floor(Math.random()*(maxIndex +1));
+        secondIndex = Math.floor(Math.random()*(maxIndex +1));
+        
+        tmp = arr[firstIndex];
+        arr[firstIndex] = arr[secondIndex];
+        arr[secondIndex] = tmp;
+    }
+}
 
-    activeSquares = new Array();
-    activeSquaresIndexes = new Array();
-    activeSquaresCount = 0;
-    $('#canvas > a.active').each(function() {
-        _x = parseInt($(this).attr('x'));
-        _y = parseInt($(this).attr('y'));
+function updateActiveSquaresArray()
+{
+    var sq;
+    var clv, cx, cy;
+    var i, side;
+    
+    squaresDbActive = new Array();
+    squaresDbActiveCount = 0;
 
-        sq = { obj    : $(this),
-               x      : _x,
-               y      : _y,
-               left   : (($('#canvas > #sq-'+(_x-1)+'-'+_y+'.active').size()==1) ? $('#canvas > #sq-'+(_x-1)+'-'+_y+'.active') : null),
-               right  : (($('#canvas > #sq-'+(_x+1)+'-'+_y+'.active').size()==1) ? $('#canvas > #sq-'+(_x+1)+'-'+_y+'.active') : null),
-               top    : (($('#canvas > #sq-'+_x+'-'+(_y-1)+'.active').size()==1) ? $('#canvas > #sq-'+_x+'-'+(_y-1)+'.active') : null),
-               bottom : (($('#canvas > #sq-'+_x+'-'+(_y+1)+'.active').size()==1) ? $('#canvas > #sq-'+_x+'-'+(_y+1)+'.active') : null)
-             };
-
-        activeSquares.push(sq);
-        activeSquaresIndexes.push(activeSquaresCount);
-        activeSquaresCount++;
-    });
-
-    console.log('updated');
-    sceneChanged = false;
+    for (clv=0; clv<canvasLevelCount; clv++)
+        for (cy=0; cy<sizeY; cy++)
+            for (cx=0; cx<sizeX; cx++) {
+                sq = squaresDb[clv][cy][cx];
+                
+                if (sq.type) {
+                    squaresDbActive.push(sq);
+                    squaresDbActiveCount++;
+                }
+            }
+            
+    
+    // build random square pair array
+    squaresDbActiveRandomPairs = new Array();
+    squaresDbActiveRandomPairsCount = 0;
+    for (i=0; i<squaresDbActiveCount; i++) {
+        sq = squaresDbActive[i];
+        for (side=0; side<4; side++)
+            switch (side) {
+                case 0: if (sq.top!==null && sq.top.type) {
+                            squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
+                            squaresDbActiveRandomPairsCount++;
+                        }
+                        break;
+                case 1: if (sq.right!==null && sq.right.type) {
+                            squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
+                            squaresDbActiveRandomPairsCount++;
+                        }
+                        break;
+                case 2: if (sq.bottom!==null && sq.bottom.type) {
+                            squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
+                            squaresDbActiveRandomPairsCount++;
+                        }
+                        break;
+                case 3: if (sq.left!==null && sq.left.type) {
+                            squaresDbActiveRandomPairs.push({randSqIndex: i, randSide: side});
+                            squaresDbActiveRandomPairsCount++;
+                        }
+                        break;
+            }
+    }
+   
+    shuffleArray(squaresDbActiveRandomPairs, squaresDbActiveRandomPairsCount);
+    
+    squaresDbChanged = false;
 }
 
 function simulateTwoSquares(sq1, sq2, side)
 {
-    var sq1Type, sq2Type;
     var R1, R2, P1, P2;
     var pDiff;
     var R12;
@@ -399,11 +437,10 @@ function simulateTwoSquares(sq1, sq2, side)
     var isSq1Switch, isSq2Switch;
     var state;
 
+
     // check is one from pair is transistor
-    isSq1Tran = sq1.attr('type') ? parseInt(sq1.attr('type')) : false;
-    isSq2Tran = sq2.attr('type') ? parseInt(sq2.attr('type')) : false;
-    isSq1Tran = (isSq1Tran==2 || isSq1Tran==3) ? isSq1Tran : false;
-    isSq2Tran = (isSq2Tran==2 || isSq2Tran==3) ? isSq2Tran : false;
+    isSq1Tran = (sq1.type==2 || sq1.type==3) ? sq1.type : false;
+    isSq2Tran = (sq2.type==2 || sq2.type==3) ? sq2.type : false;
 
     if ((isSq1Tran!==false && isSq2Tran===false) || (isSq1Tran===false && isSq2Tran!==false))
         if (isSq1Tran!=false) {
@@ -433,7 +470,7 @@ function simulateTwoSquares(sq1, sq2, side)
 
     // change transistor resistance
     if (transistorMode) {
-        gateParticles = parseInt(gateSquare.find('> b').html());
+        gateParticles = gateSquare.par;
         gateFactor = gateParticles / MAX_PARTICLES;
         gateFactor = gateFactor > 1.0 ? 1.0 : gateFactor;
         gateFactor = gateFactor < 0.0 ? 0.0 : gateFactor;
@@ -445,48 +482,45 @@ function simulateTwoSquares(sq1, sq2, side)
         tranResistance = 1 + (tranFactor * (MAX_RESISTANCE-1));
         tranResistance = Math.round(tranResistance);
 
-        tranSquare.find('> i').html(tranResistance).css('opacity', (tranResistance/MAX_RESISTANCE));
+        tranSquare.res = tranResistance;
     }
 
 
     // check is one from pair is switch
-    isSq1Switch = sq1.attr('type') ? parseInt(sq1.attr('type')) : false;
-    isSq2Switch = sq2.attr('type') ? parseInt(sq2.attr('type')) : false;
-    isSq1Switch = (isSq1Switch==6) ? isSq1Switch : false;
-    isSq2Switch = (isSq2Switch==6) ? isSq2Switch : false;
+    isSq1Switch = (sq1.type==6) ? sq1.type : false;
+    isSq2Switch = (sq2.type==6) ? sq2.type : false;
     if ((isSq1Switch!==false && isSq2Switch===false) || (isSq1Switch===false && isSq2Switch!==false))
         if (isSq1Switch!=false) {
             // sq1 is switch
-            state = parseInt(sq1.attr('state'));
+            state = sq1.state;
             if ((side==2 && state==1) || (side==0 && state==0)) {
                 computeCurrent = false;
             }
         } else {
             // sq2 is switch
-            state = parseInt(sq2.attr('state'));
+            state = sq2.state;
             if ((side==2 && state==0) || (side==0 && state==1)) {
                 computeCurrent = false;
             }
         }
-
+    
     // compute current between squares
     if (computeCurrent) {
 
-        sq1Type = parseInt(sq1.attr('type'));
-        sq2Type = parseInt(sq2.attr('type'));
-
-        P1 = parseInt(sq1.find('> b').html());
-        P2 = parseInt(sq2.find('> b').html());
-        R1 = parseInt(sq1.find('> i').html());
-        R2 = parseInt(sq2.find('> i').html());
+        P1 = sq1.par;
+        P2 = sq2.par;
+        R1 = sq1.res;
+        R2 = sq2.res;
 
         R12 = R1 + R2;
         pDiff = P2 - P1;
         particlesToMove = Math.round( pDiff / R12 );
+        /*
         if (particlesToMove==0 && Math.abs(pDiff)>0) {
             if (Math.random()>0.9)
                 particlesToMove = (Math.random()>0.5) ? 1 : -1;
         }
+        */
 
         P1 = P1 + particlesToMove;
         P2 = P2 - particlesToMove;
@@ -501,18 +535,18 @@ function simulateTwoSquares(sq1, sq2, side)
         }
 
         // check if its power and restore power state
-        if (sq1Type==4)
+        if (sq1.type==4)
             P1 = MAX_PARTICLES;
-        if (sq1Type==5)
+        if (sq1.type==5)
             P1 = 0;
-        if (sq2Type==4)
+        if (sq2.type==4)
             P2 = MAX_PARTICLES;
-        if (sq2Type==5)
+        if (sq2.type==5)
             P2 = 0;
+        
 
-        sq1.find('> b').html(P1).css('opacity', P1/MAX_PARTICLES); 
-        sq2.find('> b').html(P2).css('opacity', P2/MAX_PARTICLES);
-
+        sq1.par = P1;
+        sq2.par = P2;
     }
 }
 
@@ -552,75 +586,98 @@ function gateFactorToTransistorFactorType3(gateFactor)
 
 function simulationLoop()
 {
-    var i, j, sqRandIdx, sideRandIdx;
+    var simActive = $('#sim-active').is(':checked');
+    var simLoopsInFrame = parseInt($('#sim-loops-in-frame').val());
+    var simFps = parseFloat($('#sim-fps').val());
+    var i, j, side;
+    var tmp;
     var sq;
+    var timeFrame = 1.0/simFps;
+    var timeAll;
+    var timeSim;
+    var timeSimOneLoop;
+    var timeRender;
 
-    if ($('#sim-active').is(':checked') && sceneChanged) {
-        updateScene();
-    }
+    simLoopsInFrame = simLoopsInFrame>0 ? simLoopsInFrame : 1;
 
-    if ($('#sim-active').is(':checked') && activeSquaresCount>0) {
+    // update one dimensional array
+    if (simActive && squaresDbChanged)
+        updateActiveSquaresArray();
+    
+    $('#sim-info-box').html('');
 
-        activeSquaresIndexes = shuffle(activeSquaresIndexes);
-        for (i=0; i<activeSquaresCount; i++) {
-            sqRandIdx = activeSquaresIndexes[i];
-            squareSides = shuffle(squareSides);
-            for (j=0; j<4; j++) {
-                sideRandIdx = squareSides[j];
+    // if there is something to simulate
+    if (simActive && squaresDbActiveCount>0) {
 
+        timeAll = speedTestStart();
 
-//                            // A->B is the same as B->A
-//                            if (sideRandIdx>=2)
-//                                continue;
+        // generate pair to simulate
+        timeSim = speedTestStart();
+        for (j=0; j<simLoopsInFrame; j++) {
+            shuffleArray(squaresDbActiveRandomPairs, squaresDbActiveRandomPairsCount);
+            for (i=0; i<squaresDbActiveRandomPairsCount; i++) {
+                tmp = squaresDbActiveRandomPairs[i];
+                sq = squaresDbActive[tmp.randSqIndex];
+                side = tmp.randSide;
 
-                sq = activeSquares[sqRandIdx];
-
-                switch (sideRandIdx) {
-                    case 0: if (sq.top!==null) {
-                                simulateTwoSquares(sq.obj, sq.top, sideRandIdx);
-                            }
-                            break;
-                    case 1: if (sq.right!==null) { 
-                                simulateTwoSquares(sq.obj, sq.right, sideRandIdx);
-                            }
-                            break;
-                    case 2: if (sq.bottom!==null) {
-                                simulateTwoSquares(sq.obj, sq.bottom, sideRandIdx);
-                            }
-                            break;
-                    case 3: if (sq.left!==null) {
-                                simulateTwoSquares(sq.obj, sq.left, sideRandIdx);
-                            }
-                            break;
+                switch (side) {
+                    case 0: simulateTwoSquares(sq, sq.top, side);      break;
+                    case 1: simulateTwoSquares(sq, sq.right, side);    break;
+                    case 2: simulateTwoSquares(sq, sq.bottom, side);   break;
+                    case 3: simulateTwoSquares(sq, sq.left, side);     break;
                 }
             }
         }
-
+        timeSim = speedTestEnd(timeSim);
+        timeSimOneLoop = timeSim / simLoopsInFrame;
+        
+        // update html
+        timeRender = speedTestStart();
+        for (i=0; i<squaresDbActiveCount; i++) {
+            sq = squaresDbActive[i];          
+            squareInHtmlUpdate(sq);
+        }
+        timeRender = speedTestEnd(timeRender);
+        
+        
+        timeAll = speedTestEnd(timeAll);
+        
+        $('#sim-info-box').html('timeFrame: ' + numberFormat(timeFrame, 3) + ', ' +
+                                'timeAll: ' + numberFormat(timeAll, 3) + ', ' +
+                                'timeSim: ' + numberFormat(timeSim, 3) + ', ' +
+                                'timeSimOneLoop: ' + numberFormat(timeSimOneLoop, 3) + ', ' +
+                                'timeRender: ' + numberFormat(timeRender, 3)
+                               );
     }
-    setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
+   
+    setTimeout("simulationLoop()", 1000.0/simFps);
 }
 
 function saveScene()
 {
-    var sq;
-    var _x, _y, _type;
-    var saveArray = new Array();
-
-    $('#canvas > a.active').each(function() {
-        _x = parseInt($(this).attr('x'));
-        _y = parseInt($(this).attr('y'));
-        _type = $(this).attr('type') ? parseInt($(this).attr('type')) : false;
-
-        sq = { x      : _x,
-               y      : _y,
-               state  : (_type==6) ? parseInt($(this).attr('state')) : false,
-               type   : _type,
-               par    : parseInt($(this).find('> b').html()),
-               res    : parseInt($(this).find('> i').html())
-             };
-
-        saveArray.push(sq);
-    });
+    var sq, i;
+    var saveArray = { sizeX            : sizeX,
+                      sizeY            : sizeY,
+                      sizePix          : sizePix,
+                      canvasLevelCount : canvasLevelCount,
+                      project          : new Array()
+                    };
+                    
+                    
+    updateActiveSquaresArray();
+    for (i=0; i<squaresDbActiveCount; i++) {
+        sq = squaresDbActive[i];     
+        
+        saveArray.project.push({ x      : sq.x,
+                                 y      : sq.y,
+                                 lv     : sq.lv,
+                                 type   : sq.type,
+                                 state  : sq.state,
+                                 lvConn : sq.lvConn,
+                                 par    : sq.par,
+                                 res    : sq.res
+                               });
+    }
 
     $('#saved').val(JSON.stringify(saveArray));
 }
@@ -628,37 +685,52 @@ function saveScene()
 function loadScene()
 {
     var saveArray = JSON.parse($('#saved').val());
-    var i;
-    var aObj;
-    var sa;
-
-    $('#canvas > a').each(function() { 
-        $(this).html('');
-        $(this).removeAttr('type');
-        $(this).removeAttr('state');
-        $(this).removeClass('type1').removeClass('type2').removeClass('type3').removeClass('type4').removeClass('type5').removeClass('type6').removeClass('active');
-    });
-
-    for (i=0; i<saveArray.length; i++) {
-        sa = saveArray[i];
-
-        aObj = $('#sq-'+sa.x+'-'+sa.y);
-        aObj.addClass('type'+sa.type).addClass('active')
-        aObj.attr('type', sa.type);
-        if (sa.type==6) {
-            aObj.attr('state', sa.state);
-        }
-        aObj.append('<b>'+sa.par+'</b>')
-        aObj.append('<i>'+sa.res+'</i>');
-        aObj.find('> b').css('opacity', sa.par/MAX_PARTICLES)
-        aObj.find('> i').css('opacity', sa.res/MAX_RESISTANCE);
+    var i, sq;
+    
+    // rebuild canvas
+    $('#squares-count-x').val(saveArray.sizeX);
+    $('#squares-count-y').val(saveArray.sizeY);
+    $('#squares-size-pix').val(saveArray.sizePix);
+    $('#canvas-levels-count').val(saveArray.canvasLevelCount);
+    newScene();
+    
+    for (i=0; i<saveArray.project.length; i++) {
+        sq = saveArray.project[i];    
+        
+        squareClick(parseInt(sq.x), 
+                    parseInt(sq.y), 
+                    parseInt(sq.lv), 
+                    parseInt(sq.type), 
+                    parseInt(sq.par), 
+                    parseInt(sq.res), 
+                    sq.state, 
+                    true);
     }
 
-    sceneChanged = true;
+    squaresDbChanged = true;
 }
+
+function newScene()
+{
+    var sX = parseInt($('#squares-count-x').val());
+    var sY = parseInt($('#squares-count-y').val());
+    var sPix = parseInt($('#squares-size-pix').val());
+    var cLvCount = parseInt($('#canvas-levels-count').val());
+    
+    setup(sX, sY, sPix, cLvCount);
+}
+
+
+
 
 $(document).ready(function() {
 
-    setup();
+    $('#squares-count-x').val(sizeX);
+    $('#squares-count-y').val(sizeY);
+    $('#squares-size-pix').val(sizePix);
+    $('#canvas-levels-count').val(canvasLevelCount);
+    $('#tool-par').val(Math.round(0.5*MAX_PARTICLES));
+            
+    setup(sizeX, sizeY, sizePix, canvasLevelCount);
     setTimeout("simulationLoop()", 1000.0/parseFloat($('#sim-fps').val()));
 });
