@@ -514,7 +514,7 @@ function shuffleArray(arr, arrCount)
     var maxIndex = arrCount - 1;
     var tmp, i;
     
-    for (i=0; i<1*arrCount; i++) {
+    for (i=0; i<Math.round(arrCount*0.3); i++) {
         firstIndex = Math.floor(Math.random()*(maxIndex +1));
         secondIndex = Math.floor(Math.random()*(maxIndex +1));
         
@@ -1084,64 +1084,182 @@ function selectedBoxFillByWire()
 }
 
 var predefinedObjects = [ { "name"       : "Gate NAND",
-                            "size"       : {"x":7,"y":6,"lv":1},
+                            "size"       : {"x":7,"y":7,"lv":2},
                             "predefined" : [],
-                            "squares"    : [   {"x":2,"y":0,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":256,"res":1},
-                                               {"x":5,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":6,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":7,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":0,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":1,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
-                                               {"x":2,"y":1,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
-                                               {"x":4,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
-                                               {"x":5,"y":1,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
-                                               {"x":7,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":0,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":2,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":5,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":7,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":2,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":3,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
-                                               {"x":5,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":7,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
-                                               {"x":0,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":2,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":5,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":0,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":1,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
-                                               {"x":2,"y":5,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
-                                               {"x":4,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
-                                               {"x":5,"y":5,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
-                                               {"x":2,"y":6,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":256,"res":1},
-                                               {"x":5,"y":6,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":0,"res":1},
-                                               {"x":1,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":2,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":3,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":4,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":3,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":4,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":5,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":6,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":7,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":1,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":2,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":3,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
-                                               {"x":4,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1}
+                            "squares"    : [{"x":1,"y":0,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},
+                                            {"x":4,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":5,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":1,"y":1,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
+                                            {"x":3,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":4,"y":1,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
+                                            {"x":6,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":4,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":1,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":1,"y":5,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
+                                            {"x":3,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":4,"y":5,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
+                                            {"x":1,"y":6,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},
+                                            {"x":4,"y":6,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},
+                                            {"x":0,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":5,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1}
                                            ]
-                          }
+                          },
+                          { "name"       : "Gate NOR",
+                            "size"       : {"x":7,"y":7,"lv":2},
+                            "predefined" : [],
+                            "squares"    : [{"x":1,"y":0,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},
+                                            {"x":4,"y":0,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},
+                                            {"x":0,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":1,"y":1,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
+                                            {"x":3,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":4,"y":1,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
+                                            {"x":1,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":4,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":1,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":1,"y":5,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
+                                            {"x":3,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},
+                                            {"x":4,"y":5,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
+                                            {"x":6,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":6,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},
+                                            {"x":4,"y":6,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":5,"y":6,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":6,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":1,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":5,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":3,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1}
+                                           ]
+                          },
+                          { "name"       : "Gate NOT",
+                            "size"       : {"x":4,"y":5,"lv":1},
+                            "predefined" : [],
+                            "squares"    : [{"x":2,"y":0,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},
+                                            {"x":0,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":1,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65536},
+                                            {"x":0,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":3,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":65537},
+                                            {"x":2,"y":4,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1}
+                                           ]
+                          },
+                          { "name"       : "Gate AND",
+                            "size"       : {"x":13,"y":7,"lv":2},
+                            "predefined" : [{"name": "Gate NAND", "x": 0, "y": 0, "lv": 0},
+                                            {"name": "Gate NOT", "x": 8, "y": 1, "lv": 0},
+                                           ],
+                            "squares"    : [{"x":7,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1}
+                                           ]
+                          },
+                          { "name"       : "Gate OR",
+                            "size"       : {"x":13,"y":7,"lv":2},
+                            "predefined" : [{"name": "Gate NOR", "x": 0, "y": 0, "lv": 0},
+                                            {"name": "Gate NOT", "x": 8, "y": 1, "lv": 0},
+                                           ],
+                            "squares"    : [{"x":7,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1}
+                                           ]
+                          },
+                          {"name"        : "Gate XOR",
+                           "size"        : {"x":24,"y":15,"lv":2},
+                           "predefined"  : [{"name": "Gate NAND", "x": 2, "y": 4, "lv": 0},
+                                            {"name": "Gate NAND", "x": 10, "y": 0, "lv": 0},
+                                            {"name": "Gate NAND", "x": 10, "y": 8, "lv": 0},
+                                            {"name": "Gate NAND", "x": 17, "y": 4, "lv": 0}
+                                           ],
+                           "squares"     : [{"x":1,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":5,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":7,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":8,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":9,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":16,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":9,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":16,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":8,"y":8,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":0,"y":9,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":9,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":8,"y":9,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":9,"y":9,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":10,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":12,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":1,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":2,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":3,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":4,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":5,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":6,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":7,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":8,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},
+                                            {"x":9,"y":13,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1}
+                                           ]
+                          },
+                          {"name":"TriState","size":{"x":10,"y":12,"lv":2},"predefined":[],"squares":[{"x":0,"y":0,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":0,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":0,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":1,"y":1,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":1,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":0,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":3,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":4,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":5,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":6,"y":2,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":0,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":1,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":3,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":131072},{"x":6,"y":3,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":8,"y":3,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":0,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":4,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":6,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":7,"y":4,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":8,"y":4,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":131072},{"x":0,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},{"x":4,"y":5,"lv":0,"type":4,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":8,"y":5,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":6,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":3,"y":6,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":4,"y":6,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":6,"y":6,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":7,"y":6,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":8,"y":6,"lv":0,"type":3,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":131072},{"x":0,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":1,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":4,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":5,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":6,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":8,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":9,"y":7,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":8,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":3,"y":8,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":4,"y":8,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":131072},{"x":6,"y":8,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":7,"y":8,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":8,"y":8,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":0,"y":9,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":1,"par":128,"res":1},{"x":4,"y":9,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":8,"y":9,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":0,"y":10,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":6,"y":10,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":7,"y":10,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":8,"y":10,"lv":0,"type":2,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":131072},{"x":0,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":1,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":2,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":3,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":4,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":5,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":6,"y":11,"lv":0,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":8,"y":11,"lv":0,"type":5,"state":null,"lvConnCeil":null,"lvConnFloor":null,"par":128,"res":1},{"x":0,"y":5,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1},{"x":0,"y":6,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":0,"y":7,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":0,"y":8,"lv":1,"type":1,"state":null,"lvConnCeil":0,"lvConnFloor":0,"par":128,"res":1},{"x":0,"y":9,"lv":1,"type":1,"state":null,"lvConnCeil":1,"lvConnFloor":0,"par":128,"res":1}]} 
                         ];
                         
 
-                            
+        
+var recurseOffsetX = 0;
+var recurseOffsetY = 0;
+var recurseOffsetLv = 0;
+var recurseDepth = 0;
 
-function copyPredefinedObjectSquaresToClipboard(src)
+function copyPredefinedObjectSquaresToClipboard(src, offsetX, offsetY, offsetLv)
 {
     var i;
     
     for (i=0; i<src.length; i++) {
-        clipboard.squares.push( { x           : src[i].x,
-                                  y           : src[i].y,
-                                  lv          : src[i].lv,
+        clipboard.squares.push( { x           : src[i].x + recurseOffsetX + offsetX,
+                                  y           : src[i].y + recurseOffsetY + offsetY,
+                                  lv          : src[i].lv + recurseOffsetLv + offsetLv,
                                   type        : src[i].type,
                                   state       : src[i].state,
                                   lvConnCeil  : src[i].lvConnCeil,
@@ -1151,6 +1269,35 @@ function copyPredefinedObjectSquaresToClipboard(src)
                                 }
                               );
     }
+}
+
+function copyPredefinedObjectRecurse(src)
+{
+    var i, j;
+    var predRef;
+    
+    for (i=0; i<src['predefined'].length; i++) {
+        predRef = src['predefined'][i];
+        
+        for (j in predefinedObjects) {
+            if (predefinedObjects[j]['name']==predRef['name']) {
+                recurseOffsetX += predRef['x'];
+                recurseOffsetY += predRef['y'];
+                recurseOffsetLv += predRef['lv'];
+                recurseDepth++;
+                copyPredefinedObjectRecurse(predefinedObjects[j]);
+                recurseOffsetX -= predRef['x'];
+                recurseOffsetY -= predRef['y'];
+                recurseOffsetLv -= predRef['lv'];
+                recurseDepth--;
+                
+                copyPredefinedObjectSquaresToClipboard(predefinedObjects[j]['squares'], predRef['x'], predRef['y'], predRef['lv']);
+                break;
+            }
+        }
+    }
+    
+
 }
 
 function placePredefinedObjectInClipboard(name)
@@ -1165,8 +1312,8 @@ function placePredefinedObjectInClipboard(name)
     
     for (key in predefinedObjects) {
         if (predefinedObjects[key]['name']==name) {
-            copyPredefinedObjectSquaresToClipboard(predefinedObjects[key]['squares']);
-            
+            copyPredefinedObjectRecurse(predefinedObjects[key]);
+            copyPredefinedObjectSquaresToClipboard(predefinedObjects[key]['squares'], 0, 0, 0);
             break;
         }
     }

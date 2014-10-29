@@ -59,6 +59,7 @@ TODO:
     + pokazywanie obszaru zaznaczonego
     + pokazywanie wielkosci obiekty w schowku
     - zrobic prefefiniowane bramki NAND NOR NOT TRISTATE
+    - zrobic pamietanie schowka 
     + narzedzie laczenia linii miedzy punktem A i B
     [KILLED] mozna by pokusic sie o symulacje na GPU przy uzyciu tekstur
     - API
